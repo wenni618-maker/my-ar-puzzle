@@ -5,97 +5,101 @@
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: "Microsoft JhengHei", sans-serif; }
         
-        /* 掃描狀態 UI */
-        #scanner-ui { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; background: #000; display: flex; align-items: center; justify-content: center; color: #0f0; }
+        /* 1. 啟動偵測介面 */
+        #scanner-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; color: #0f0; text-align: center; background: rgba(0,0,0,0.8);
+        }
 
-        /* 遊戲畫布：掃描成功後才顯示 */
-        #game-canvas {
+        /* 2. 數位拼圖遊戲區 (B 圖) */
+        #game-layer {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: #eee; background-image: url('MissingPartScene.png'); /* B 圖作為底圖 */
+            display: none; z-index: 2000;
+            background-color: #333;
+            background-image: url('MissingPartScene.png'); /* B 圖作為背景 */
             background-size: contain; background-repeat: no-repeat; background-position: center;
-            display: none; z-index: 100;
         }
 
         .puzzle-piece {
-            position: absolute; width: 120px; z-index: 200;
-            touch-action: none; cursor: grab;
+            position: absolute; width: 120px; z-index: 3000;
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+            touch-action: none;
         }
 
-        #win-msg {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,255,0,0.9); color: #000; padding: 20px;
-            font-weight: bold; border-radius: 10px; display: none; z-index: 300;
+        button {
+            margin-top: 20px; padding: 15px 30px; background: #0f0; color: #000;
+            border: none; border-radius: 50px; font-weight: bold; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <div id="scanner-ui">
-        <p>🔍 正在偵測 A 圖以啟動修復程序...</p>
+    <div id="scanner-layer">
+        <p>🔍 正在偵測 A 圖啟動程序...</p>
+        <p style="font-size: 12px; color: #888;">(若掃描無反應，可點擊下方強制進入)</p>
+        <button onclick="enterGame()">手動進入修復模式</button>
     </div>
 
-    <div id="game-canvas">
-        <div id="win-msg">🎉 拼圖完成！</div>
-        <img src="part1.png" class="puzzle-piece" id="p1" style="left: 20px; top: 100px;">
+    <div id="game-layer">
+        <img src="part1.png" class="puzzle-piece" id="p1" style="left: 10%; top: 10%;">
     </div>
 
     <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiLoading: no;" embedded vr-mode-ui="enabled: false">
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity mindar-image-target="targetIndex: 0" id="a-target"></a-entity>
+        <a-entity mindar-image-target="targetIndex: 0" id="a-trigger"></a-entity>
     </a-scene>
 
     <script>
-        const aTarget = document.getElementById('a-target');
-        const scannerUi = document.getElementById('scanner-ui');
-        const gameCanvas = document.getElementById('game-canvas');
+        const scannerLayer = document.getElementById('scanner-layer');
+        const gameLayer = document.getElementById('game-layer');
+        const aTrigger = document.getElementById('a-trigger');
         const sceneEl = document.querySelector('a-scene');
 
-        // 當掃描到 A 圖時
-        aTarget.addEventListener("targetFound", () => {
-            // 1. 停止 AR 引擎與相機，節省效能
-            sceneEl.systems["mindar-image-system"].stop(); 
-            
-            // 2. 切換介面
-            scannerUi.style.display = 'none';
-            gameCanvas.style.display = 'block';
-            
-            // 3. 震動提醒
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        // 當掃描到 A 圖時觸發自動進入
+        aTrigger.addEventListener("targetFound", () => {
+            enterGame();
         });
 
-        // 碎片拖動邏輯
+        // 核心功能：進入拼圖模式
+        function enterGame() {
+            // 停止 AR 相機節省電力
+            const arSystem = sceneEl.systems["mindar-image-system"];
+            if(arSystem) arSystem.stop();
+            
+            // 切換畫面
+            scannerLayer.style.display = 'none';
+            gameLayer.style.display = 'block';
+            
+            // 提醒
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            console.log("已進入 B 圖拼圖模式");
+        }
+
+        // 碎片拖曳功能
         function makeDraggable(el) {
+            let startX, startY;
             el.addEventListener('touchstart', (e) => {
                 let t = e.touches[0];
-                let startX = t.clientX - el.offsetLeft;
-                let startY = t.clientY - el.offsetTop;
+                startX = t.clientX - el.offsetLeft;
+                startY = t.clientY - el.offsetTop;
+                el.style.scale = "1.1"; // 拿起時稍微變大
+            });
 
-                function move(e) {
-                    let moveT = e.touches[0];
-                    el.style.left = (moveT.clientX - startX) + 'px';
-                    el.style.top = (moveT.clientY - startY) + 'px';
-                }
+            el.addEventListener('touchmove', (e) => {
+                let t = e.touches[0];
+                el.style.left = (t.clientX - startX) + 'px';
+                el.style.top = (t.clientY - startY) + 'px';
+            });
 
-                function end() {
-                    window.removeEventListener('touchmove', move);
-                    window.removeEventListener('touchend', end);
-                    checkWin();
-                }
-
-                window.addEventListener('touchmove', move);
-                window.addEventListener('touchend', end);
+            el.addEventListener('touchend', () => {
+                el.style.scale = "1.0";
             });
         }
 
         makeDraggable(document.getElementById('p1'));
-
-        // 簡易判斷勝利（之後可以根據座標精準化）
-        function checkWin() {
-            // 這裡可以加入座標判斷，若 p1 接近目標位置則鎖定
-            console.log("正在檢查位置...");
-        }
     </script>
 </body>
 </html>
