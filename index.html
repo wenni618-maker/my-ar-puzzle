@@ -4,45 +4,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  
   <style>
-    body { margin: 0; overflow: hidden; touch-action: none; }
-    #debug-ui {
-      position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8);
-      color: #00FF00; padding: 15px; z-index: 999; font-family: monospace;
-      border: 1px solid #00FF00; pointer-events: none;
+    body { margin: 0; overflow: hidden; background-color: black; }
+    #ui {
+      position: fixed; top: 10px; left: 10px; z-index: 1000;
+      background: rgba(0,0,0,0.8); color: #00FF00; padding: 10px;
+      font-family: monospace; border: 1px solid #00FF00;
     }
+    /* 強制顯示相機畫面 */
+    video { width: 100vw !important; height: 100vh !important; object-fit: cover !important; }
   </style>
 </head>
 <body>
-  <div id="debug-ui">
-    <strong>當前採集：碎片 <span id="partName">1</span></strong><br>
-    拖動零件到正確缺口並記下座標：<br>
-    X: <span id="valX">0.00</span> | Y: <span id="valY">0.00</span>
+
+  <div id="ui">
+    狀態：正在啟動相機...<br>
+    X: <span id="valX">0</span> | Y: <span id="valY">0</span>
   </div>
 
-  <a-scene mindar-image="imageTargetSrc: ./targets.mind;" embedded vr-mode-ui="enabled: false">
+  <a-scene 
+    mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiError: yes; uiLoading: yes; uiScanning: yes;" 
+    embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
+    vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
     <a-entity mindar-image-target="targetIndex: 0">
-      <a-image id="moving-part" src="./part1.png" position="0 0 0.1" scale="0.3 0.3 0.3"></a-image>
-      <a-image src="./MissingPartScene.png" position="0 0 0" opacity="0.3"></a-image>
+      <a-box position="0 0 0" scale="0.1 0.1 0.1" color="red"></a-box>
+      
+      <a-image id="part1" src="part1.png" position="0 0 0.1" scale="0.3 0.3 0.3"></a-image>
     </a-entity>
   </a-scene>
 
   <script>
-    const part = document.getElementById('moving-part');
+    const ui = document.getElementById('ui');
     const valX = document.getElementById('valX');
     const valY = document.getElementById('valY');
+    const part1 = document.getElementById('part1');
 
+    // 監聽 AR 是否啟動成功
+    window.addEventListener("arClick", () => { ui.innerHTML = "AR 啟動中..."; });
+    
+    // 監聽是否找到識別圖
+    const sceneEl = document.querySelector('a-scene');
+    sceneEl.addEventListener("targetFound", () => { ui.style.color = "yellow"; ui.innerHTML = "已找到識別圖！請拖動零件<br>X: 0 | Y: 0"; });
+
+    // 手動拖曳座標採集
     window.addEventListener('touchmove', (e) => {
       let touch = e.touches[0];
       let x = (touch.clientX / window.innerWidth) * 2 - 1;
       let y = -(touch.clientY / window.innerHeight) * 2 + 1;
-      
-      // 這裡係數設為 1.2，您可以根據手機距離微調
-      let finalX = (x * 1.2).toFixed(2);
-      let finalY = (y * 1.2).toFixed(2);
-
-      part.setAttribute('position', `${finalX} ${finalY} 0.05`);
+      let finalX = (x * 1.5).toFixed(2);
+      let finalY = (y * 1.5).toFixed(2);
+      part1.setAttribute('position', `${finalX} ${finalY} 0.05`);
       valX.innerText = finalX;
       valY.innerText = finalY;
     });
