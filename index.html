@@ -4,44 +4,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <style>
         body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: sans-serif; touch-action: none; }
-        
-        #scanner-layer {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000; color: #0f0; background: rgba(0,0,0,0.85);
-        }
-
-        #game-layer {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            display: none; z-index: 2000;
-        }
-
-        /* 讓底圖容器固定比例 */
-        #content-container {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100vw; height: auto;
-            aspect-ratio: 1.5; /* 根據你的圖片比例調整，暫定 3:2 */
-        }
-
-        #bg-image { width: 100%; height: auto; display: block; }
+        #scanner-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 1000; background: #000; color: #0f0; }
+        #game-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; z-index: 2000; }
+        #stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: inline-block; }
+        #bg-image { max-width: 100vw; max-height: 100vh; display: block; }
 
         .puzzle-piece {
             position: absolute; 
-            width:100%; /* 改用百分比，確保與底圖縮放一致 */
+            width: 20%; /* 這是你剛才調好最準的大小比例 */
             z-index: 3000;
-            touch-action: none;
             filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
         }
 
         .locked {
-            filter: drop-shadow(0 0 15px #0f0) brightness(1.1);
+            filter: drop-shadow(0 0 15px #0f0) brightness(1.2);
             pointer-events: none;
-            transition: all 0.3s;
+            transition: all 0.2s ease-out;
         }
 
+        #msg { position: fixed; top: 20px; width: 100%; text-align: center; color: #0f0; z-index: 4000; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #000; }
         button { padding: 15px 30px; background: #0f0; border: none; border-radius: 50px; font-weight: bold; }
-        #msg { position: fixed; top: 20px; width: 100%; text-align: center; color: #0f0; z-index: 4000; font-size: 20px; font-weight: bold; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -52,7 +34,7 @@
 
     <div id="game-layer">
         <div id="msg">請拖動碎片填補缺口</div>
-        <div id="content-container">
+        <div id="stage">
             <img src="MissingPartScene.png" id="bg-image">
             <img src="part1.png" class="puzzle-piece" id="p1" style="left: 5%; top: 5%;">
         </div>
@@ -64,7 +46,7 @@
             document.getElementById('game-layer').style.display = 'block';
         }
 
-        function makeDraggable(el, correctX, correctY) {
+        function makeDraggable(el, targetX, targetY) {
             let startX, startY;
             
             el.addEventListener('touchstart', (e) => {
@@ -75,20 +57,21 @@
 
             el.addEventListener('touchmove', (e) => {
                 let t = e.touches[0];
+                let stageRect = document.getElementById('stage').getBoundingClientRect();
+                
                 let x = t.clientX - startX;
                 let y = t.clientY - startY;
+                
                 el.style.left = x + 'px';
                 el.style.top = y + 'px';
 
-                // 計算與「正確位置」的距離
-                // 這裡的正確位置需要你根據實測調整，例如左邊 45%, 上方 30%
-                let container = document.getElementById('content-container').getBoundingClientRect();
-                let relX = (x / container.width) * 100;
-                let relY = (y / container.height) * 100;
+                // 計算相對底圖的百分比位置
+                let relX = (x / stageRect.width) * 100;
+                let relY = (y / stageRect.height) * 100;
 
-                // 簡單示範：如果移到特定區域就吸附
-                if (relX > 40 && relX < 50 && relY > 35 && relY < 45) { 
-                    snap(el, 45, 40); // 自動吸附到 45%, 40%
+                // 檢查是否接近目標吸附點 (根據截圖預設 41, 47)
+                if (Math.abs(relX - targetX) < 5 && Math.abs(relY - targetY) < 5) {
+                    snap(el, targetX, targetY);
                 }
             });
         }
@@ -97,10 +80,12 @@
             el.style.left = x + '%';
             el.style.top = y + '%';
             el.classList.add('locked');
-            document.getElementById('msg').innerText = "✅ 修復成功！";
+            document.getElementById('msg').innerText = "✅ 碎片 1 已成功修復！";
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
         }
 
-        makeDraggable(document.getElementById('p1'));
+        // 啟動第一個碎片的拖動，並設定目標座標為 (41, 47)
+        makeDraggable(document.getElementById('p1'), 41, 47);
     </script>
 </body>
 </html>
