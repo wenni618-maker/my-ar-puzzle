@@ -2,101 +2,102 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: "Microsoft JhengHei", sans-serif; }
+        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: sans-serif; touch-action: none; }
         
-        /* 1. 啟動偵測介面 */
         #scanner-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000; color: #0f0; text-align: center; background: rgba(0,0,0,0.8);
+            z-index: 1000; color: #0f0; background: rgba(0,0,0,0.85);
         }
 
-        /* 2. 數位拼圖遊戲區 (B 圖) */
         #game-layer {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             display: none; z-index: 2000;
-            background-color: #333;
-            background-image: url('MissingPartScene.png'); /* B 圖作為背景 */
-            background-size: contain; background-repeat: no-repeat; background-position: center;
         }
+
+        /* 讓底圖容器固定比例 */
+        #content-container {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100vw; height: auto;
+            aspect-ratio: 1.5; /* 根據你的圖片比例調整，暫定 3:2 */
+        }
+
+        #bg-image { width: 100%; height: auto; display: block; }
 
         .puzzle-piece {
-            position: absolute; width: 120px; z-index: 3000;
-            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+            position: absolute; 
+            width: 20%; /* 改用百分比，確保與底圖縮放一致 */
+            z-index: 3000;
             touch-action: none;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
         }
 
-        button {
-            margin-top: 20px; padding: 15px 30px; background: #0f0; color: #000;
-            border: none; border-radius: 50px; font-weight: bold; cursor: pointer;
+        .locked {
+            filter: drop-shadow(0 0 15px #0f0) brightness(1.1);
+            pointer-events: none;
+            transition: all 0.3s;
         }
+
+        button { padding: 15px 30px; background: #0f0; border: none; border-radius: 50px; font-weight: bold; }
+        #msg { position: fixed; top: 20px; width: 100%; text-align: center; color: #0f0; z-index: 4000; font-size: 20px; font-weight: bold; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div id="scanner-layer">
-        <p>🔍 正在偵測 A 圖啟動程序...</p>
-        <p style="font-size: 12px; color: #888;">(若掃描無反應，可點擊下方強制進入)</p>
-        <button onclick="enterGame()">手動進入修復模式</button>
+        <button onclick="enterGame()">進入修復模式</button>
     </div>
 
     <div id="game-layer">
-        <img src="part1.png" class="puzzle-piece" id="p1" style="left: 10%; top: 10%;">
+        <div id="msg">請拖動碎片填補缺口</div>
+        <div id="content-container">
+            <img src="MissingPartScene.png" id="bg-image">
+            <img src="part1.png" class="puzzle-piece" id="p1" style="left: 5%; top: 5%;">
+        </div>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiLoading: no;" embedded vr-mode-ui="enabled: false">
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity mindar-image-target="targetIndex: 0" id="a-trigger"></a-entity>
-    </a-scene>
-
     <script>
-        const scannerLayer = document.getElementById('scanner-layer');
-        const gameLayer = document.getElementById('game-layer');
-        const aTrigger = document.getElementById('a-trigger');
-        const sceneEl = document.querySelector('a-scene');
-
-        // 當掃描到 A 圖時觸發自動進入
-        aTrigger.addEventListener("targetFound", () => {
-            enterGame();
-        });
-
-        // 核心功能：進入拼圖模式
         function enterGame() {
-            // 停止 AR 相機節省電力
-            const arSystem = sceneEl.systems["mindar-image-system"];
-            if(arSystem) arSystem.stop();
-            
-            // 切換畫面
-            scannerLayer.style.display = 'none';
-            gameLayer.style.display = 'block';
-            
-            // 提醒
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            console.log("已進入 B 圖拼圖模式");
+            document.getElementById('scanner-layer').style.display = 'none';
+            document.getElementById('game-layer').style.display = 'block';
         }
 
-        // 碎片拖曳功能
-        function makeDraggable(el) {
+        function makeDraggable(el, correctX, correctY) {
             let startX, startY;
+            
             el.addEventListener('touchstart', (e) => {
                 let t = e.touches[0];
                 startX = t.clientX - el.offsetLeft;
                 startY = t.clientY - el.offsetTop;
-                el.style.scale = "1.1"; // 拿起時稍微變大
             });
 
             el.addEventListener('touchmove', (e) => {
                 let t = e.touches[0];
-                el.style.left = (t.clientX - startX) + 'px';
-                el.style.top = (t.clientY - startY) + 'px';
-            });
+                let x = t.clientX - startX;
+                let y = t.clientY - startY;
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
 
-            el.addEventListener('touchend', () => {
-                el.style.scale = "1.0";
+                // 計算與「正確位置」的距離
+                // 這裡的正確位置需要你根據實測調整，例如左邊 45%, 上方 30%
+                let container = document.getElementById('content-container').getBoundingClientRect();
+                let relX = (x / container.width) * 100;
+                let relY = (y / container.height) * 100;
+
+                // 簡單示範：如果移到特定區域就吸附
+                if (relX > 40 && relX < 50 && relY > 35 && relY < 45) { 
+                    snap(el, 45, 40); // 自動吸附到 45%, 40%
+                }
             });
+        }
+
+        function snap(el, x, y) {
+            el.style.left = x + '%';
+            el.style.top = y + '%';
+            el.classList.add('locked');
+            document.getElementById('msg').innerText = "✅ 修復成功！";
         }
 
         makeDraggable(document.getElementById('p1'));
