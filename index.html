@@ -1,68 +1,87 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <style>
-    body { margin: 0; overflow: hidden; background: #000; }
-    #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #222; color: #0f0; display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: monospace; text-align: center; }
-    #ui { position: fixed; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; border: 1px solid #0f0; display: none; }
-  </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>AR 採集工具</title>
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image.prod.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; color: white; font-family: sans-serif; }
+        #container { width: 100vw; height: 100vh; position: relative; }
+        canvas { position: absolute; top: 0; left: 0; }
+        #ui {
+            position: fixed; top: 10px; left: 10px; z-index: 100;
+            background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #0f0;
+        }
+        #btn {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 20px 40px; background: #0f0; color: #000; border: none;
+            border-radius: 50px; font-weight: bold; z-index: 1000;
+        }
+    </style>
 </head>
 <body>
 
-  <div id="loading-screen">
-    <div>
-      <p id="status-text">正在讀取 targets.mind...</p>
-      <button id="start-btn" style="display:none; padding:15px 30px; font-size:18px; background:#0f0; border:none; border-radius:10px;">點此開啟相機</button>
+    <button id="btn">啟動相機與 AR</button>
+
+    <div id="ui" style="display:none;">
+        狀態：<span id="status">準備中</span><br>
+        碎片 X: <span id="valX">0.00</span> | Y: <span id="valY">0.00</span>
     </div>
-  </div>
 
-  <div id="ui">X: <span id="valX">0</span> | Y: <span id="valY">0</span></div>
+    <div id="container"></div>
 
-  <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: false; uiLoading: no;" embedded vr-mode-ui="enabled: false">
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-    <a-entity mindar-image-target="targetIndex: 0">
-      <a-sphere position="0 0 0" radius="0.05" color="red"></a-sphere>
-      <a-image id="part1" src="part1.png" position="0 0 0.1" scale="0.5 0.5 0.5"></a-image>
-    </a-entity>
-  </a-scene>
+    <script type="module">
+        const container = document.querySelector("#container");
+        const btn = document.querySelector("#btn");
+        const status = document.querySelector("#status");
+        
+        // 建立 AR 實例
+        const mindarThree = new window.MINDAR.IMAGE.MindARThree({
+            container: container,
+            imageTargetSrc: 'targets.mind',
+        });
 
-  <script>
-    const sceneEl = document.querySelector('a-scene');
-    const startBtn = document.getElementById('start-btn');
-    const statusText = document.getElementById('status-text');
+        const {renderer, scene, camera} = mindarThree;
 
-    // 檢查檔案是否能正常讀取
-    fetch('targets.mind')
-      .then(response => {
-        if (!response.ok) throw new Error('找不到 targets.mind 檔案');
-        statusText.innerText = "檔案讀取正常";
-        startBtn.style.display = "inline-block";
-      })
-      .catch(err => {
-        statusText.innerText = "錯誤: " + err.message + "\n請確認檔案已上傳至 GitHub 根目錄";
-        statusText.style.color = "red";
-      });
+        // 建立一個追蹤目標
+        const anchor = mindarThree.addAnchor(0);
+        
+        // 加入一個紅色的正方形當作測試
+        const geometry = new THREE.PlaneGeometry(0.3, 0.3);
+        const material = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: true, opacity: 0.7});
+        const plane = new THREE.Mesh(geometry, material);
+        anchor.group.add(plane);
 
-    startBtn.onclick = () => {
-      document.getElementById('loading-screen').style.display = "none";
-      document.getElementById('ui').style.display = "block";
-      const arSystem = sceneEl.systems["mindar-image-system"];
-      arSystem.start();
-    };
+        btn.addEventListener('click', async () => {
+            btn.style.display = 'none';
+            document.querySelector("#ui").style.display = 'block';
+            status.innerText = "正在連通鏡頭...";
+            
+            try {
+                await mindarThree.start();
+                renderer.setAnimationLoop(() => {
+                    renderer.render(scene, camera);
+                });
+                status.innerText = "已啟動！請對準識別圖";
+            } catch (e) {
+                status.innerText = "啟動錯誤：" + e.message;
+                console.error(e);
+            }
+        });
 
-    window.addEventListener('touchmove', (e) => {
-      let touch = e.touches[0];
-      let x = (touch.clientX / window.innerWidth) * 2 - 1;
-      let y = -(touch.clientY / window.innerHeight) * 2 + 1;
-      let finalX = (x * 1.5).toFixed(2);
-      let finalY = (y * 1.5).toFixed(2);
-      document.getElementById('part1').setAttribute('position', `${finalX} ${finalY} 0.05`);
-      document.getElementById('valX').innerText = finalX;
-      document.getElementById('valY').innerText = finalY;
-    });
-  </script>
+        // 簡易座標換算
+        window.addEventListener('touchmove', (e) => {
+            let touch = e.touches[0];
+            let x = (touch.clientX / window.innerWidth) * 2 - 1;
+            let y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            
+            let finalX = (x * 1.5).toFixed(2);
+            let finalY = (y * 1.5).toFixed(2);
+            
+            plane.position.set(finalX, finalY, 0.01);
+            document.querySelector("#valX").innerText = finalX;
+            document.querySelector("#valY").innerText = finalY;
+        });
+    </script>
 </body>
 </html>
