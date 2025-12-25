@@ -5,17 +5,14 @@
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        /* 強制將相機畫面拉到最前方 */
-        video {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: cover !important;
-            z-index: -1 !important; /* 放在元件下方，但確保它會渲染 */
-        }
+        /* 強制相機層出現在最底層，並移除所有遮擋 */
         body { margin: 0; overflow: hidden; background: none !important; }
+        video { 
+            position: fixed !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            z-index: -2 !important; 
+        }
         #ui {
             position: fixed; top: 10px; left: 10px; z-index: 1000;
             background: rgba(0,0,0,0.8); color: #0f0; padding: 12px;
@@ -27,24 +24,24 @@
 
     <div id="ui">
         第一塊碎片採集中心<br>
-        1. 請先看到相機畫面<br>
-        2. 對準圖後拖動碎片<br>
+        1. 看到相機畫面後，請對準「完整識別圖」<br>
+        2. 當畫面出現紅球，將碎片拖到缺口<br>
         X: <span id="valX">0.38</span> | Y: <span id="valY">-1.42</span>
     </div>
 
     <a-scene 
         mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiLoading: no; uiScanning: yes;" 
         embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
-        color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights">
+        color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights, alpha: true">
         
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
             <a-sphere position="0 0 0" radius="0.03" color="red"></a-sphere>
             
-            <a-image id="part1" src="part1.png" position="0.38 -1.42 0.1" scale="0.5 0.5 0.5"></a-image>
+            <a-image id="part1" src="part1.png" position="0.38 -1.42 0.1" scale="0.4 0.4 0.4"></a-image>
             
-            <a-image src="MissingPartScene.png" position="0 0 0" opacity="0.4"></a-image>
+            <a-image src="MissingPartScene.png" position="0 0 0" opacity="0.3"></a-image>
         </a-entity>
     </a-scene>
 
@@ -58,6 +55,7 @@
             let x = (touch.clientX / window.innerWidth) * 2 - 1;
             let y = -(touch.clientY / window.innerHeight) * 2 + 1;
             
+            // 座標換算微調
             let finalX = (x * 1.5).toFixed(2);
             let finalY = (y * 1.5).toFixed(2);
 
