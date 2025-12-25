@@ -5,34 +5,25 @@
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; }
-        /* 強制相機層置底並顯示 */
-        .mindar-ui-overlay { z-index: 500; }
+        /* 核心修正：讓背景透明，確保看得到相機 */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
         #ui {
             position: fixed; top: 10px; left: 10px; z-index: 1000;
             background: rgba(0,0,0,0.8); color: #0f0; padding: 12px;
             font-family: monospace; border: 1px solid #0f0;
         }
-        #start-mask {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #222; z-index: 2000; display: flex; align-items: center; justify-content: center;
-        }
-        button { padding: 20px 40px; font-size: 1.2rem; background: #0f0; border: none; border-radius: 50px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="start-mask">
-        <button onclick="startApp()">相機已就緒，點此開始</button>
-    </div>
-
-    <div id="ui" style="display:none;">
-        座標採集：<br>
-        X: <span id="valX">0.00</span> | Y: <span id="valY">0.00</span>
+    <div id="ui">
+        第一塊碎片採集中心<br>
+        請對準圖並拖動碎片到缺口：<br>
+        X: <span id="valX">0.38</span> | Y: <span id="valY">-1.42</span>
     </div>
 
     <a-scene 
-        mindar-image="imageTargetSrc: targets.mind; autoStart: false; uiLoading: no; uiScanning: yes;" 
+        mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiLoading: no; uiScanning: yes;" 
         embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
         color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights">
         
@@ -40,43 +31,36 @@
 
         <a-entity mindar-image-target="targetIndex: 0">
             <a-sphere position="0 0 0" radius="0.03" color="red"></a-sphere>
-            <a-image id="part1" src="part1.png" position="0 0 0.1" scale="0.5 0.5 0.5"></a-image>
+            
+            <a-image id="part1" src="part1.png" position="0.38 -1.42 0.1" scale="0.5 0.5 0.5"></a-image>
+            
+            <a-image src="MissingPartScene.png" position="0 0 0" opacity="0.4"></a-image>
         </a-entity>
     </a-scene>
 
     <script>
-        const ui = document.getElementById('ui');
-        const startMask = document.getElementById('start-mask');
+        const valX = document.getElementById('valX');
+        const valY = document.getElementById('valY');
+        const part1 = document.getElementById('part1');
+
+        // 監聽識別狀態
         const sceneEl = document.querySelector('a-scene');
-
-        function startApp() {
-            startMask.style.display = 'none';
-            ui.style.display = 'block';
-            const arSystem = sceneEl.systems["mindar-image-system"];
-            arSystem.start(); 
-        }
-
-        // 監聽識別成功
         sceneEl.addEventListener("targetFound", () => {
-            ui.innerHTML = "狀態：<span style='color:yellow'>已找到識別圖！</span><br>X: <span id='valX'>0.00</span> | Y: <span id='valY'>0.00</span>";
+            console.log("找到圖片了！");
         });
 
-        // 觸控拖曳
+        // 拖曳與座標顯示
         window.addEventListener('touchmove', (e) => {
-            if(e.touches.length > 0) {
-                let touch = e.touches[0];
-                let x = (touch.clientX / window.innerWidth) * 2 - 1;
-                let y = -(touch.clientY / window.innerHeight) * 2 + 1;
-                
-                // Note 10+ 螢幕比例調整
-                let finalX = (x * 1.6).toFixed(2);
-                let finalY = (y * 1.6).toFixed(2);
+            let touch = e.touches[0];
+            let x = (touch.clientX / window.innerWidth) * 2 - 1;
+            let y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            
+            let finalX = (x * 1.5).toFixed(2);
+            let finalY = (y * 1.5).toFixed(2);
 
-                const p1 = document.getElementById('part1');
-                p1.setAttribute('position', `${finalX} ${finalY} 0.05`);
-                document.getElementById('valX').innerText = finalX;
-                document.getElementById('valY').innerText = finalY;
-            }
+            part1.setAttribute('position', `${finalX} ${finalY} 0.1`);
+            valX.innerText = finalX;
+            valY.innerText = finalY;
         });
     </script>
 </body>
