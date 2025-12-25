@@ -5,8 +5,17 @@
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        /* 核心修正：讓背景透明，確保看得到相機 */
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
+        /* 強制將相機畫面拉到最前方 */
+        video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: cover !important;
+            z-index: -1 !important; /* 放在元件下方，但確保它會渲染 */
+        }
+        body { margin: 0; overflow: hidden; background: none !important; }
         #ui {
             position: fixed; top: 10px; left: 10px; z-index: 1000;
             background: rgba(0,0,0,0.8); color: #0f0; padding: 12px;
@@ -18,7 +27,8 @@
 
     <div id="ui">
         第一塊碎片採集中心<br>
-        請對準圖並拖動碎片到缺口：<br>
+        1. 請先看到相機畫面<br>
+        2. 對準圖後拖動碎片<br>
         X: <span id="valX">0.38</span> | Y: <span id="valY">-1.42</span>
     </div>
 
@@ -41,15 +51,8 @@
     <script>
         const valX = document.getElementById('valX');
         const valY = document.getElementById('valY');
-        const part1 = document.getElementById('part1');
+        const p1 = document.getElementById('part1');
 
-        // 監聽識別狀態
-        const sceneEl = document.querySelector('a-scene');
-        sceneEl.addEventListener("targetFound", () => {
-            console.log("找到圖片了！");
-        });
-
-        // 拖曳與座標顯示
         window.addEventListener('touchmove', (e) => {
             let touch = e.touches[0];
             let x = (touch.clientX / window.innerWidth) * 2 - 1;
@@ -58,7 +61,7 @@
             let finalX = (x * 1.5).toFixed(2);
             let finalY = (y * 1.5).toFixed(2);
 
-            part1.setAttribute('position', `${finalX} ${finalY} 0.1`);
+            p1.setAttribute('position', `${finalX} ${finalY} 0.1`);
             valX.innerText = finalX;
             valY.innerText = finalY;
         });
