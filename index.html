@@ -2,75 +2,80 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; }
-        /* 強制讓 A-Frame 的畫布透明，露出底層相機 */
-        canvas { opacity: 1 !important; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        /* 相機層：直接強制置底 */
+        #video {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            object-fit: cover; z-index: 1;
+        }
+        /* 零件層：浮在相機上面 */
+        #part-layer {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 10; pointer-events: none; /* 讓點擊穿透到背景觸發移動 */
+        }
+        #part1 {
+            position: absolute; width: 150px; opacity: 0.7; /* 半透明方便對位 */
+            transform: translate(-50%, -50%);
+        }
         #ui {
-            position: fixed; top: 10px; left: 10px; z-index: 1000;
-            background: rgba(0,0,0,0.8); color: #0f0; padding: 10px;
-            font-family: monospace; border: 1px solid #0f0;
+            position: fixed; top: 10px; left: 10px; z-index: 100;
+            background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; border: 1px solid #0f0;
         }
-        #btn-layer {
-            position: fixed; bottom: 20%; left: 0; width: 100%;
-            display: flex; justify-content: center; z-index: 2000;
-        }
-        button {
-            padding: 15px 30px; font-size: 18px; background: #00FF00;
-            border: none; border-radius: 10px; font-weight: bold;
-        }
+        #controls { position: fixed; bottom: 20px; width: 100%; text-align: center; z-index: 100; }
+        button { padding: 15px 30px; background: #0f0; border: none; border-radius: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="ui">X: <span id="valX">0.00</span> | Y: <span id="valY">0.00</span></div>
-
-    <div id="btn-layer">
-        <button id="start">1. 點擊開啟相機</button>
+    <video id="video" autoplay playsinline></video>
+    
+    <div id="part-layer">
+        <img id="part1" src="part1.png" style="left: 50%; top: 50%;">
     </div>
 
-    <a-scene 
-        mindar-image="imageTargetSrc: targets.mind; autoStart: false; uiLoading: no; uiScanning: yes;" 
-        embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
-        renderer="preserveDrawingBuffer: true; alpha: true;">
-        
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <div id="ui">
+        座標採集器 (手動模式)<br>
+        1. 請對準實體圖<br>
+        2. 滑動螢幕移動零件<br>
+        X: <span id="valX">0.00</span> | Y: <span id="valY">0.00</span>
+    </div>
 
-        <a-entity mindar-image-target="targetIndex: 0">
-            <a-sphere position="0 0 0" radius="0.05" color="red"></a-sphere>
-            
-            <a-image id="part1" src="part1.png" position="0 0 0.1" scale="0.5 0.5 0.5"></a-image>
-            
-            <a-image src="MissingPartScene.png" position="0 0 0" opacity="0.3"></a-image>
-        </a-entity>
-    </a-scene>
+    <div id="controls">
+        <button onclick="requestCamera()">開啟鏡頭</button>
+    </div>
 
     <script>
-        const btn = document.getElementById('start');
-        const sceneEl = document.querySelector('a-scene');
+        const video = document.getElementById('video');
+        const part = document.getElementById('part1');
+        const valX = document.getElementById('valX');
+        const valY = document.getElementById('valY');
 
-        btn.onclick = () => {
-            btn.style.display = 'none';
-            // 手動呼叫 AR 系統啟動
-            const arSystem = sceneEl.systems["mindar-image-system"];
-            arSystem.start();
-            
-            // 強制修正：有些三星手機需要點擊後重新調整畫布大小才會出圖
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-            }, 1000);
-        };
+        // 1. 強制啟動鏡頭
+        async function requestCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                video.srcObject = stream;
+                document.getElementById('controls').style.display = 'none';
+            } catch (err) {
+                alert("無法開啟鏡 le: " + err.message);
+            }
+        }
 
+        // 2. 觸控移動零件並計算座標
         window.addEventListener('touchmove', (e) => {
             let touch = e.touches[0];
+            part.style.left = touch.clientX + 'px';
+            part.style.top = touch.clientY + 'px';
+
+            // 換算成我們 AR 程式需要的數學座標
             let x = ((touch.clientX / window.innerWidth) * 2 - 1) * 1.5;
             let y = (-(touch.clientY / window.innerHeight) * 2 + 1) * 1.5;
             
-            document.getElementById('part1').setAttribute('position', `${x.toFixed(2)} ${y.toFixed(2)} 0.1`);
-            document.getElementById('valX').innerText = x.toFixed(2);
-            document.getElementById('valY').innerText = y.toFixed(2);
+            valX.innerText = x.toFixed(2);
+            valY.innerText = y.toFixed(2);
         });
     </script>
 </body>
