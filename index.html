@@ -1,25 +1,85 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    #ui {
+      position: fixed; top: 10px; left: 10px; z-index: 1000;
+      background: rgba(0,0,0,0.8); color: #00FF00; padding: 10px;
+      font-family: monospace; border: 1px solid #00FF00;
+    }
+    #control {
+      position: fixed; bottom: 20px; width: 100%; text-align: center; z-index: 1000;
+    }
+    .btn {
+      padding: 10px 20px; background: #FF5722; color: white; border: none; border-radius: 5px; margin: 5px;
+    }
+  </style>
+</head>
 <body>
-  <h2>相機啟動測試</h2>
-  <video id="video" width="100%" height="auto" autoplay playsinline style="border: 2px solid red;"></video>
-  <p id="status">正在請求相機...</p>
+
+  <div id="ui">
+    狀態：等待啟動...<br>
+    X: <span id="valX">0.00</span> | Y: <span id="valY">0.00</span>
+  </div>
+
+  <div id="control">
+    <button class="btn" onclick="startAR()">1. 點擊啟動 AR</button>
+  </div>
+
+  <a-scene 
+    mindar-image="imageTargetSrc: targets.mind; autoStart: false; uiLoading: no; uiScanning: yes;" 
+    embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
+    vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0">
+      <a-box position="0 0 0" scale="0.05 0.05 0.05" color="yellow"></a-box>
+      
+      <a-image id="part1" src="part1.png" position="0 0 0.1" scale="0.5 0.5 0.5"></a-image>
+      
+      <a-image src="MissingPartScene.png" position="0 0 0" opacity="0.3"></a-image>
+    </a-entity>
+  </a-scene>
 
   <script>
-    const video = document.getElementById('video');
-    const status = document.getElementById('status');
+    const ui = document.getElementById('ui');
+    const valX = document.getElementById('valX');
+    const valY = document.getElementById('valY');
+    const part1 = document.getElementById('part1');
 
-    // 嘗試啟動最基礎的相機功能
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then((stream) => {
-        video.srcObject = stream;
-        status.innerText = "相機啟動成功！請更換回 AR 代碼。";
-        status.style.color = "green";
-      })
-      .catch((err) => {
-        status.innerText = "錯誤：" + err.name + " - " + err.message;
-        status.style.color = "red";
-      });
+    function startAR() {
+      ui.innerText = "狀態：相機啟動中...";
+      const sceneEl = document.querySelector('a-scene');
+      const arSystem = sceneEl.systems["mindar-image-system"];
+      arSystem.start(); 
+      ui.innerText = "狀態：請對準識別圖";
+    }
+
+    // 監聽是否找到識別圖
+    const sceneEl = document.querySelector('a-scene');
+    sceneEl.addEventListener("targetFound", () => {
+      ui.innerHTML = "狀態：<span style='color:yellow'>已找到圖！請拖動零件</span><br>X: 0.00 | Y: 0.00";
+    });
+
+    // 拖曳邏輯
+    window.addEventListener('touchmove', (e) => {
+      let touch = e.touches[0];
+      let x = (touch.clientX / window.innerWidth) * 2 - 1;
+      let y = -(touch.clientY / window.innerHeight) * 2 + 1;
+      
+      // 座標換算
+      let finalX = (x * 1.5).toFixed(2);
+      let finalY = (y * 1.5).toFixed(2);
+
+      part1.setAttribute('position', `${finalX} ${finalY} 0.05`);
+      valX.innerText = finalX;
+      valY.innerText = finalY;
+    });
   </script>
 </body>
 </html>
