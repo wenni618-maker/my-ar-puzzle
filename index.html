@@ -18,7 +18,6 @@
 
         #game-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; z-index: 2000; background: #1a1a1a; }
         
-        /* 托盤樣式 */
         #tray {
             position: fixed; top: 80px; left: 5vw; width: 90vw; height: 22vh;
             background: rgba(255, 255, 255, 0.2); border: 2px solid #fff;
@@ -33,14 +32,14 @@
         #bg-image { max-width: 95vw; max-height: 50vh; display: block; opacity: 0.5; }
 
         .puzzle-piece {
-            position: fixed; /* 強制所有拼圖在還沒吸附前，使用螢幕絕對座標 */
+            position: fixed; 
             width: 100vw; height: auto;
             z-index: 3000; touch-action: none;
             filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8)) brightness(1.1);
         }
 
         .locked { 
-            position: absolute !important; /* 吸附後變回底圖的相對座標 */
+            position: absolute !important; 
             left: 0 !important; top: 0 !important; 
             filter: none !important; pointer-events: none; z-index: 2500 !important; 
         }
@@ -89,8 +88,6 @@
             hasStarted = true;
             document.getElementById('scanner-layer').style.display = 'none';
             document.getElementById('game-layer').style.display = 'block';
-            
-            // 延遲一點點執行，確保托盤渲染完成，getBoundingClientRect 才抓得到準確數值
             setTimeout(initPieces, 100);
 
             try {
@@ -104,11 +101,8 @@
             const tray = document.getElementById('tray').getBoundingClientRect();
 
             pieces.forEach((p) => {
-                // 強制碎片出現在托盤矩形內
-                // X: 托盤左側 + 隨機寬度 (扣除圖片本身可能產生的位移)
                 const randomX = tray.left + (Math.random() * (tray.width - 150)); 
                 const randomY = tray.top + (Math.random() * (tray.height - 100)); 
-                
                 p.style.left = randomX + 'px';
                 p.style.top = randomY + 'px';
                 makeDraggable(p);
@@ -119,13 +113,11 @@
 
         function makeDraggable(el) {
             let startX, startY;
-            
             el.addEventListener('touchstart', (e) => {
                 if (el.classList.contains('locked')) return;
                 currentMaxZ++;
                 el.style.zIndex = currentMaxZ;
                 const t = e.touches[0];
-                // 紀錄按下的點相對於元素左上角的距離
                 startX = t.clientX - el.offsetLeft;
                 startY = t.clientY - el.offsetTop;
                 el.style.filter = "drop-shadow(0 0 25px #fff) brightness(1.3)";
@@ -135,22 +127,17 @@
                 if (el.classList.contains('locked')) return;
                 e.preventDefault();
                 const t = e.touches[0];
-                
                 const currentX = t.clientX - startX;
                 const currentY = t.clientY - startY;
-                
                 el.style.left = currentX + 'px';
                 el.style.top = currentY + 'px';
 
-                // --- 吸附邏輯修正 ---
                 const stage = document.getElementById('stage').getBoundingClientRect();
-                
-                // 計算「碎片當前位置」與「目標底圖位置」在螢幕上的像素差
                 const distanceX = Math.abs(currentX - stage.left);
                 const distanceY = Math.abs(currentY - stage.top);
 
-                // 如果 X 與 Y 的像素差都小於 25 像素，觸發吸附
-                if (distanceX < 25 && distanceY < 25) {
+                // 改回原本較大的吸附範圍 (45 像素)
+                if (distanceX < 45 && distanceY < 45) {
                     snap(el);
                 }
             });
@@ -167,7 +154,6 @@
             lockedCount++;
             document.getElementById('count').innerText = lockedCount;
             if (navigator.vibrate) navigator.vibrate(50);
-            
             if (lockedCount === totalCount) {
                 document.getElementById('msg').innerHTML = "✨ 畫作已完整復原 ✨";
                 document.getElementById('bg-image').classList.add('all-done');
