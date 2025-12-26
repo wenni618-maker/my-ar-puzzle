@@ -18,9 +18,10 @@
 
         #game-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; z-index: 2000; background: #1a1a1a; }
         
+        /* 托盤區域 */
         #tray {
             position: fixed; top: 80px; left: 5vw; width: 90vw; height: 22vh;
-            background: rgba(255, 255, 255, 0.2); border: 2px solid #fff;
+            background: rgba(255, 255, 255, 0.15); border: 2px dashed #fff;
             border-radius: 15px; z-index: 1000; pointer-events: none;
         }
 
@@ -35,18 +36,21 @@
             position: fixed; 
             width: 100vw; height: auto;
             z-index: 3000; touch-action: none;
-            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8)) brightness(1.1);
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+            /* 保持中心定位，確保能進托盤 */
+            transform: translate(-50%, -50%); 
         }
 
+        /* 成功吸附後的樣式 */
         .locked { 
             position: absolute !important; 
             left: 0 !important; top: 0 !important; 
+            transform: translate(0, 0) !important; /* 吸附後必須取消位移，否則會歪掉 */
             filter: none !important; pointer-events: none; z-index: 2500 !important; 
         }
 
         #msg { position: fixed; top: 25px; width: 100%; text-align: center; color: #fff; z-index: 4000; font-size: 20px; font-weight: bold; }
         .start-btn { padding: 18px 45px; background: #fff; border: none; border-radius: 50px; font-weight: bold; font-size: 20px; color: #000; }
-        .all-done { opacity: 1.0 !important; filter: brightness(1.1); }
     </style>
 </head>
 <body>
@@ -88,23 +92,22 @@
             hasStarted = true;
             document.getElementById('scanner-layer').style.display = 'none';
             document.getElementById('game-layer').style.display = 'block';
-            setTimeout(initPieces, 100);
-
-            try {
-                const sceneEl = document.querySelector('a-scene');
-                if (sceneEl && sceneEl.systems["mindar-image-system"]) sceneEl.systems["mindar-image-system"].stop();
-            } catch(e){}
+            setTimeout(initPieces, 150);
         }
 
         function initPieces() {
             const pieces = document.querySelectorAll('.puzzle-piece');
             const tray = document.getElementById('tray').getBoundingClientRect();
+            
+            const centerX = tray.left + (tray.width / 2);
+            const centerY = tray.top + (tray.height / 2);
 
             pieces.forEach((p) => {
-                const randomX = tray.left + (Math.random() * (tray.width - 150)); 
-                const randomY = tray.top + (Math.random() * (tray.height - 100)); 
-                p.style.left = randomX + 'px';
-                p.style.top = randomY + 'px';
+                const spreadX = (Math.random() * tray.width * 0.7) - (tray.width * 0.35);
+                const spreadY = (Math.random() * tray.height * 0.7) - (tray.height * 0.35);
+                
+                p.style.left = (centerX + spreadX) + 'px';
+                p.style.top = (centerY + spreadY) + 'px';
                 makeDraggable(p);
             });
         }
@@ -112,31 +115,44 @@
         document.getElementById('a-trigger').addEventListener("targetFound", emergencyStart);
 
         function makeDraggable(el) {
-            let startX, startY;
+            let startTouchX, startTouchY, startElementX, startElementY;
+            
             el.addEventListener('touchstart', (e) => {
                 if (el.classList.contains('locked')) return;
                 currentMaxZ++;
                 el.style.zIndex = currentMaxZ;
                 const t = e.touches[0];
-                startX = t.clientX - el.offsetLeft;
-                startY = t.clientY - el.offsetTop;
-                el.style.filter = "drop-shadow(0 0 25px #fff) brightness(1.3)";
+                
+                // 紀錄初始位置
+                startTouchX = t.clientX;
+                startTouchY = t.clientY;
+                startElementX = el.offsetLeft;
+                startElementY = el.offsetTop;
+                
+                el.style.filter = "drop-shadow(0 0 20px #fff) brightness(1.2)";
             });
 
             el.addEventListener('touchmove', (e) => {
                 if (el.classList.contains('locked')) return;
                 e.preventDefault();
                 const t = e.touches[0];
-                const currentX = t.clientX - startX;
-                const currentY = t.clientY - startY;
+                
+                // 計算移動後的座標
+                const currentX = startElementX + (t.clientX - startTouchX);
+                const currentY = startElementY + (t.clientY - startTouchY);
+                
                 el.style.left = currentX + 'px';
                 el.style.top = currentY + 'px';
 
+                // --- 修正版吸附邏輯 ---
                 const stage = document.getElementById('stage').getBoundingClientRect();
-                const distanceX = Math.abs(currentX - stage.left);
-                const distanceY = Math.abs(currentY - stage.top);
+                
+                // 因為使用了 translate(-50%, -50%)，el.offsetLeft 其實是指向圖片的「中心」
+                // 我們直接計算「圖片當前中心位置」與「底圖中心位置」的像素距離
+                const distanceX = Math.abs(currentX - (stage.left + stage.width / 2));
+                const distanceY = Math.abs(currentY - (stage.top + stage.height / 2));
 
-                // 改回原本較大的吸附範圍 (45 像素)
+                // 使用 45 像素的大吸附範圍
                 if (distanceX < 45 && distanceY < 45) {
                     snap(el);
                 }
@@ -144,7 +160,7 @@
 
             el.addEventListener('touchend', () => {
                 if (!el.classList.contains('locked')) {
-                    el.style.filter = "drop-shadow(0 0 15px rgba(255, 255, 255, 0.8)) brightness(1.1)";
+                    el.style.filter = "drop-shadow(0 0 10px rgba(255, 255, 255, 0.8))";
                 }
             });
         }
@@ -156,7 +172,6 @@
             if (navigator.vibrate) navigator.vibrate(50);
             if (lockedCount === totalCount) {
                 document.getElementById('msg').innerHTML = "✨ 畫作已完整復原 ✨";
-                document.getElementById('bg-image').classList.add('all-done');
             }
         }
     </script>
