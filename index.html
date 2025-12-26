@@ -3,70 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>畫作復原互動系統</title>
+    <title>畫作復原系統</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: "Microsoft JhengHei", sans-serif; touch-action: none; }
         
-        /* 啟動介面 */
+        /* 啟動介面：確保 z-index 最高，擋住背後的相機報錯 */
         #scanner-layer { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
             z-index: 9999; background: #000; color: #fff; 
         }
 
-        #game-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; z-index: 2000; }
+        #game-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; z-index: 2000; background: #000; }
         
-        /* 拼圖舞台：底圖位置 */
         #stage { 
             position: absolute; top: 60%; left: 50%; 
             transform: translate(-50%, -50%); 
             display: inline-block; 
         }
         
-        #bg-image { 
-            max-width: 95vw; max-height: 65vh; 
-            display: block; opacity: 0.5; transition: all 1s; 
-        }
+        #bg-image { max-width: 95vw; max-height: 65vh; display: block; opacity: 0.5; transition: all 1s; }
 
-        /* 碎片樣式：吸附前發光 */
         .puzzle-piece {
-            position: absolute;
-            width: 100%; 
-            z-index: 3000;
-            touch-action: none;
+            position: absolute; width: 100%; z-index: 3000; touch-action: none;
             filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9)) brightness(1.1);
             transition: transform 0.2s, filter 0.3s;
         }
 
-        /* 鎖定狀態：吸附後不發光 */
-        .locked {
-            filter: none !important; 
-            pointer-events: none;
-            z-index: 2500 !important;
-            transition: all 0.4s ease-out;
-        }
+        .locked { filter: none !important; pointer-events: none; z-index: 2500 !important; transition: all 0.4s ease-out; }
 
-        #msg { 
-            position: fixed; top: 20px; width: 100%; text-align: center; 
-            color: #fff; z-index: 4000; font-size: 20px; font-weight: bold; 
-            text-shadow: 0 0 10px #000; 
-        }
+        #msg { position: fixed; top: 20px; width: 100%; text-align: center; color: #fff; z-index: 4000; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #000; }
 
         .start-btn { 
-            padding: 18px 40px; background: #fff; border: none; 
-            border-radius: 50px; font-weight: bold; font-size: 18px; color: #000;
-            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+            padding: 18px 45px; background: #fff; border: none; border-radius: 50px; 
+            font-weight: bold; font-size: 20px; color: #000; cursor: pointer;
+            box-shadow: 0 0 25px rgba(255,255,255,0.4);
         }
 
-        /* 頂部碎片放置範圍提示（視覺導引） */
         #top-zone {
             position: fixed; top: 0; left: 0; width: 100%; height: 28vh;
             background: linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            z-index: 1500; pointer-events: none;
+            border-bottom: 1px solid rgba(255,255,255,0.15); z-index: 1500; pointer-events: none;
         }
 
         .all-done { opacity: 1.0 !important; filter: brightness(1.1) contrast(1.1); }
@@ -75,8 +55,8 @@
 <body>
 
     <div id="scanner-layer">
-        <p style="margin-bottom: 25px; color: #888;">🔍 正在進入畫作復原系統...</p>
-        <button class="start-btn" onclick="enterGame()">開始畫作復原</button>
+        <p style="margin-bottom: 30px; color: #aaa; letter-spacing: 2px;">🔍 正在進入畫作復原系統...</p>
+        <button class="start-btn" onclick="forceEnterGame()">開始畫作復原</button>
     </div>
 
     <div id="game-layer">
@@ -106,29 +86,80 @@
         const totalCount = 9;
         let currentMaxZ = 3000;
 
-        function enterGame() {
-            document.getElementById('scanner-layer').style.display = 'none';
+        // 【核心修正】強制進入遊戲函數
+        function forceEnterGame() {
+            console.log("正在強制切換至遊戲畫面...");
+            
+            // 1. 立即處理 UI 切換，不等待任何系統回應
+            document.getElementById('scanner-layer').style.setProperty('display', 'none', 'important');
             document.getElementById('game-layer').style.display = 'block';
             
+            // 2. 初始化碎片位置
             const pieces = document.querySelectorAll('.puzzle-piece');
             pieces.forEach((p) => {
-                // 將碎片隨機分佈在螢幕頂部 25% 的區域
-                // 相對於居中的 stage，-85% 到 -60% 是螢幕最上方
                 const randomX = (Math.random() * 70 - 35); 
                 const randomY = (Math.random() * 25 - 85); 
-                
                 p.style.left = randomX + '%';
                 p.style.top = randomY + '%';
                 makeDraggable(p);
             });
 
-            try { document.querySelector('a-scene').systems["mindar-image-system"].stop(); } catch(e){}
+            // 3. 嘗試停止 AR 以節省手機效能（若啟動失敗則跳過）
+            try {
+                const sceneEl = document.querySelector('a-scene');
+                if (sceneEl && sceneEl.systems["mindar-image-system"]) {
+                    sceneEl.systems["mindar-image-system"].stop();
+                }
+            } catch(e) { console.log("AR Stop skip"); }
         }
 
-        // AR 偵測自動進入
-        document.getElementById('a-trigger').addEventListener("targetFound", enterGame);
+        // AR 偵測成功也會自動觸發
+        document.getElementById('a-trigger').addEventListener("targetFound", forceEnterGame);
 
         function makeDraggable(el) {
             let startX, startY;
-            
-            el.addEventListener
+            el.addEventListener('touchstart', (e) => {
+                if (el.classList.contains('locked')) return;
+                currentMaxZ++;
+                el.style.zIndex = currentMaxZ;
+                const t = e.touches[0];
+                startX = t.clientX - el.offsetLeft;
+                startY = t.clientY - el.offsetTop;
+                el.style.filter = "drop-shadow(0 0 25px #fff) brightness(1.3)";
+                el.style.transform = "scale(1.05)";
+            });
+
+            el.addEventListener('touchmove', (e) => {
+                if (el.classList.contains('locked')) return;
+                const t = e.touches[0];
+                const x = t.clientX - startX;
+                const y = t.clientY - startY;
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+                if (Math.sqrt(x*x + y*y) < 45) snap(el);
+            });
+
+            el.addEventListener('touchend', () => {
+                if (!el.classList.contains('locked')) {
+                    el.style.transform = "scale(1.0)";
+                    el.style.filter = "drop-shadow(0 0 15px rgba(255, 255, 255, 0.9)) brightness(1.1)";
+                }
+            });
+        }
+
+        function snap(el) {
+            el.style.left = "0px";
+            el.style.top = "0px";
+            el.style.transform = "scale(1.0)";
+            el.classList.add('locked');
+            lockedCount++;
+            document.getElementById('count').innerText = lockedCount;
+            if (navigator.vibrate) navigator.vibrate(50);
+            if (lockedCount === totalCount) {
+                document.getElementById('msg').innerHTML = "✨ 畫作已完整復原 ✨";
+                document.getElementById('bg-image').classList.add('all-done');
+            }
+        }
+    </script>
+</body>
+</html>
