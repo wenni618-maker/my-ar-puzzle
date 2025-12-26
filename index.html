@@ -15,19 +15,18 @@
         #stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: inline-block; }
         #bg-image { max-width: 100vw; max-height: 100vh; display: block; opacity: 0.7; transition: opacity 1s; }
 
-        /* --- 修正：碎片在拖動/吸附前保持恆亮 --- */
         .puzzle-piece {
             position: absolute;
             width: 100%; 
             z-index: 3000;
             touch-action: none;
-            /* 初始狀態：帶有白色發光效果 */
-            filter: drop-shadow(0 0 15px rgba(255,255,255,0.9)) brightness(1.1);
+            /* --- 修正：吸附前恆亮 --- */
+            filter: drop-shadow(0 0 12px rgba(255,255,255,0.9));
         }
 
-        /* --- 修正：吸附成功後，移除所有發光與濾鏡 --- */
+        /* --- 修正：吸附後取消發光效果 --- */
         .locked {
-            filter: none !important; /* 徹底移除發光 */
+            filter: none !important; 
             pointer-events: none;
             z-index: 2500;
             transition: all 0.4s ease-out;
@@ -45,11 +44,10 @@
             color: #000; cursor: pointer;
         }
         
-        /* 勝利時的 3 秒大閃光特效維持不變 */
         @keyframes success-flash {
             0% { filter: drop-shadow(0 0 0px #fff) brightness(1); }
             50% { filter: drop-shadow(0 0 50px #fff) brightness(2); } 
-            100% { filter: drop-shadow(0 0 10px #fff) brightness(1.2); }
+            100% { filter: drop-shadow(0 0 15px #fff) brightness(1.2); }
         }
         
         .all-done-flash { 
@@ -71,26 +69,10 @@
         <div id="stage">
             <img src="MissingPartScene.png" id="bg-image">
             
-            <img src="part1.png" class="puzzle-piece" id="p1" style="left: 20%; top: -20%;">
-            <img src="part2.png" class="puzzle-piece" id="p2" style="left: 22%; top: -18%;">
-            <img src="part3.png" class="puzzle-piece" id="p3" style="left: 24%; top: -22%;">
-            <img src="part4.png" class="puzzle-piece" id="p4" style="left: 26%; top: -16%;">
-            <img src="part5.png" class="puzzle-piece" id="p5" style="left: 28%; top: -24%;">
-            <img src="part6.png" class="puzzle-piece" id="p6" style="left: 30%; top: -14%;">
-            <img src="part7.png" class="puzzle-piece" id="p7" style="left: 32%; top: -26%;">
-            <img src="part8.png" class="puzzle-piece" id="p8" style="left: 34%; top: -12%;">
-            <img src="part9.png" class="puzzle-piece" id="p9" style="left: 36%; top: -28%;">
-        </div>
-    </div>
-
-    <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiLoading: no;" embedded vr-mode-ui="enabled: false">
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity mindar-image-target="targetIndex: 0" id="a-trigger"></a-entity>
-    </a-scene>
-
-    <script>
-        let piecesLocked = 0;
-        const totalPieces = 9;
-
-        function enterGame() {
-            document.getElementById('scanner
+            <img src="part1.png" class="puzzle-piece" id="p1" style="left: 40%; top: -20%;">
+            <img src="part2.png" class="puzzle-piece" id="p2" style="left: 42%; top: -18%;">
+            <img src="part3.png" class="puzzle-piece" id="p3" style="left: 44%; top: -22%;">
+            <img src="part4.png" class="puzzle-piece" id="p4" style="left: 46%; top: -16%;">
+            <img src="part5.png" class="puzzle-piece" id="p5" style="left: 48%; top: -24%;">
+            <img src="part6.png" class="puzzle-piece" id="p6" style="left: 50%; top: -14%;">
+            <img src="part7.png" class="puzzle-piece" id="p7" style="
