@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>畫作復原拼圖</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
     <style>
         body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: sans-serif; touch-action: none; }
         
@@ -12,25 +17,31 @@
         }
 
         #game-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; z-index: 2000; }
-        #stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: inline-block; }
-        #bg-image { max-width: 100vw; max-height: 100vh; display: block; opacity: 0.8; transition: opacity 1s; }
+        
+        #stage { 
+            position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            display: inline-block; 
+        }
+        
+        #bg-image { 
+            max-width: 100vw; max-height: 100vh; 
+            display: block; opacity: 0.7; transition: opacity 1s; 
+        }
 
-        /* --- 1. 尚未吸附前的碎片：帶有恆亮發光 --- */
         .puzzle-piece {
             position: absolute;
             width: 100%; 
             z-index: 3000;
             touch-action: none;
-            /* 白色光暈提示玩家這是一塊可以移動的碎片 */
             filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.9)) brightness(1.1);
             transition: filter 0.3s;
         }
 
-        /* --- 2. 吸附成功後的狀態：取消發光，融入背景 --- */
         .locked {
-            filter: none !important; /* 強制移除所有發光與濾鏡 */
-            pointer-events: none;    /* 鎖定後不可再抓取 */
-            z-index: 2500;           /* 層級降到未修復碎片的下方 */
+            filter: none !important; 
+            pointer-events: none;
+            z-index: 2500;
             transition: all 0.4s ease-out;
         }
 
@@ -40,21 +51,20 @@
             text-shadow: 0 0 10px #000; 
         }
 
-        button { 
-            padding: 15px 30px; background: #fff; border: none; 
+        .start-btn { 
+            padding: 18px 35px; background: #fff; border: none; 
             border-radius: 50px; font-weight: bold; font-size: 18px; 
-            color: #000; cursor: pointer;
+            color: #000; cursor: pointer; box-shadow: 0 0 15px rgba(255,255,255,0.3);
         }
 
-        /* 修復完成後的背景提亮動畫 */
-        .all-done { opacity: 1.0 !important; filter: contrast(1.1); }
+        .all-done { opacity: 1.0 !important; filter: contrast(1.1) brightness(1.1); }
     </style>
 </head>
 <body>
 
     <div id="scanner-layer">
-        <p>🔍 偵測 A 圖啟動中...</p>
-        <button onclick="enterGame()">開始畫作復原</button>
+        <p style="margin-bottom: 25px;">🔍 偵測 A 圖啟動中...</p>
+        <button class="start-btn" onclick="enterGame()">開始畫作復原</button>
     </div>
 
     <div id="game-layer">
@@ -73,6 +83,11 @@
         </div>
     </div>
 
+    <a-scene mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiLoading: no;" id="ar-scene" embedded vr-mode-ui="enabled: false">
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-entity mindar-image-target="targetIndex: 0" id="a-trigger"></a-entity>
+    </a-scene>
+
     <script>
         let lockedCount = 0;
         const totalCount = 9;
@@ -83,14 +98,17 @@
             
             const pieces = document.querySelectorAll('.puzzle-piece');
             pieces.forEach(p => {
-                // 隨機分佈在螢幕上方區域
-                const randomX = (Math.random() * 60 - 30); 
-                const randomY = (Math.random() * 30 - 50); 
+                const randomX = (Math.random() * 30 + 50); 
+                const randomY = (Math.random() * 20 - 50); 
                 p.style.left = randomX + '%';
                 p.style.top = randomY + '%';
                 makeDraggable(p);
             });
+
+            try { document.querySelector('a-scene').systems["mindar-image-system"].stop(); } catch(e){}
         }
+
+        document.getElementById('a-trigger').addEventListener("targetFound", enterGame);
 
         function makeDraggable(el) {
             let startX, startY;
@@ -101,7 +119,6 @@
                 startX = t.clientX - el.offsetLeft;
                 startY = t.clientY - el.offsetTop;
                 el.style.zIndex = 3500; 
-                // 觸摸時可以讓光暈更亮一點 (反饋感)
                 el.style.filter = "drop-shadow(0 0 20px #fff) brightness(1.3)";
             });
 
@@ -114,7 +131,7 @@
                 el.style.top = y + 'px';
 
                 const dist = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-                if (dist < 40) { // 吸附距離
+                if (dist < 40) { 
                     snap(el);
                 }
             });
@@ -122,7 +139,6 @@
             el.addEventListener('touchend', () => {
                 if (!el.classList.contains('locked')) {
                     el.style.zIndex = 3000;
-                    // 放開後恢復普通光暈
                     el.style.filter = "drop-shadow(0 0 12px rgba(255, 255, 255, 0.9)) brightness(1.1)";
                 }
             });
@@ -131,13 +147,14 @@
         function snap(el) {
             el.style.left = "0px";
             el.style.top = "0px";
-            el.classList.add('locked'); // 這會觸發 CSS 中的 filter: none
+            el.classList.add('locked');
             lockedCount++;
             
             if (lockedCount < totalCount) {
-                document.getElementById('msg').innerText = `已修復 ${lockedCount} / ${totalCount}`;
+                document.getElementById('msg').innerText = `已復原 ${lockedCount} / ${totalCount}`;
             } else {
-                document.getElementById('msg').innerText = "✨ 畫作修復完成！";
+                // 替換處：畫作復原完成
+                document.getElementById('msg').innerText = "✨ 畫作復原完成！";
                 document.getElementById('bg-image').classList.add('all-done');
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             }
