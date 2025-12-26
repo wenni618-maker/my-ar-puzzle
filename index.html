@@ -10,6 +10,7 @@
     <style>
         body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: "Microsoft JhengHei", sans-serif; touch-action: none; }
         
+        /* 啟動介面 */
         #scanner-layer { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
@@ -18,35 +19,26 @@
 
         #game-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; z-index: 2000; }
         
-        /* 托盤：白色半透明 */
-        #tray {
-            position: fixed; top: 70px; left: 5vw; width: 90vw; height: 22vh;
-            background: rgba(255, 255, 255, 0.2); border: 2px solid #fff;
-            border-radius: 15px; z-index: 1000; pointer-events: none;
-        }
-
         #stage { 
-            position: absolute; top: 68%; left: 50%; 
+            position: absolute; top: 50%; left: 50%; 
             transform: translate(-50%, -50%); 
             display: inline-block; 
         }
-        #bg-image { max-width: 95vw; max-height: 50vh; display: block; opacity: 0.5; }
+        #bg-image { max-width: 90vw; max-height: 70vh; display: block; opacity: 0.5; }
 
         .puzzle-piece {
-            position: fixed; 
-            width: 100vw; height: auto;
+            position: absolute; /* 回歸相對定位，與底圖座標統一 */
+            width: 100%; height: auto;
             z-index: 3000; touch-action: none;
             filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
-            /* 取消所有的 translate，改用純像素計算 */
         }
 
         .locked { 
-            position: absolute !important; 
             left: 0 !important; top: 0 !important; 
             filter: none !important; pointer-events: none; z-index: 2500 !important; 
         }
 
-        #msg { position: fixed; top: 25px; width: 100%; text-align: center; color: #fff; z-index: 4000; font-size: 20px; font-weight: bold; }
+        #msg { position: fixed; top: 40px; width: 100%; text-align: center; color: #fff; z-index: 4000; font-size: 22px; font-weight: bold; }
         .start-btn { padding: 18px 45px; background: #fff; border: none; border-radius: 50px; font-weight: bold; font-size: 20px; color: #000; }
     </style>
 </head>
@@ -57,7 +49,6 @@
     </div>
 
     <div id="game-layer">
-        <div id="tray"></div>
         <div id="msg">已完成復原：<span id="count">0</span> / 9</div>
         <div id="stage">
             <img src="MissingPartScene.png" id="bg-image">
@@ -89,28 +80,17 @@
             hasStarted = true;
             document.getElementById('scanner-layer').style.display = 'none';
             document.getElementById('game-layer').style.display = 'block';
-            
-            // 確保 UI 顯示後才計算座標
-            setTimeout(initPieces, 200);
+            initPieces();
         }
 
         function initPieces() {
             const pieces = document.querySelectorAll('.puzzle-piece');
-            const tray = document.getElementById('tray').getBoundingClientRect();
-            
             pieces.forEach((p) => {
-                // 獲取拼圖本身的寬高一半（用來把圖片中心對準托盤中心）
-                const pW = p.offsetWidth / 2;
-                const pH = p.offsetHeight / 2;
-
-                // 隨機在托盤內生成中心點像素位置
-                const randomX = tray.left + (Math.random() * (tray.width - 60)) + 30;
-                const randomY = tray.top + (Math.random() * (tray.height - 60)) + 30;
-                
-                // 設定 Left/Top，讓圖片中心落到 randomX/Y
-                p.style.left = (randomX - pW) + 'px';
-                p.style.top = (randomY - pH) + 'px';
-                
+                // 碎片隨機散佈在底圖周圍（-40% 到 40% 的範圍）
+                const randomX = (Math.random() * 80 - 40); 
+                const randomY = (Math.random() * 80 - 40); 
+                p.style.left = randomX + '%';
+                p.style.top = randomY + '%';
                 makeDraggable(p);
             });
         }
@@ -123,11 +103,8 @@
                 currentMaxZ++;
                 el.style.zIndex = currentMaxZ;
                 const t = e.touches[0];
-                
-                // 紀錄手指點擊點與圖片左上角的位移
                 startX = t.clientX - el.offsetLeft;
                 startY = t.clientY - el.offsetTop;
-                
                 el.style.filter = "drop-shadow(0 0 20px #fff) brightness(1.2)";
             });
 
@@ -135,20 +112,15 @@
                 if (el.classList.contains('locked')) return;
                 e.preventDefault();
                 const t = e.touches[0];
+                const x = t.clientX - startX;
+                const y = t.clientY - startY;
                 
-                const curX = t.clientX - startX;
-                const curY = t.clientY - startY;
-                
-                el.style.left = curX + 'px';
-                el.style.top = curY + 'px';
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
 
-                // 吸附判斷：比對碎片左上角與底圖左上角的像素距離
-                const stage = document.getElementById('stage').getBoundingClientRect();
-                const distX = Math.abs(curX - stage.left);
-                const distY = Math.abs(curY - stage.top);
-
-                // 恢復 50 像素的強力吸附範圍
-                if (distX < 50 && distY < 50) {
+                // 強力吸附判定 (50像素)
+                // 這裡判斷與底圖 (0,0) 的距離
+                if (Math.sqrt(x*x + y*y) < 50) {
                     snap(el);
                 }
             });
@@ -167,6 +139,7 @@
             if (navigator.vibrate) navigator.vibrate(50);
             if (lockedCount === totalCount) {
                 document.getElementById('msg').innerHTML = "✨ 畫作已完整復原 ✨";
+                document.getElementById('bg-image').style.opacity = "1";
             }
         }
 
