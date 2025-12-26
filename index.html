@@ -8,47 +8,47 @@
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: "Microsoft JhengHei", sans-serif; touch-action: none; }
+        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: "Microsoft JhengHei", sans-serif; touch-action: none; }
         
-        /* 啟動介面 - 確保權限與顯示最高級別 */
         #scanner-layer { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 10000; background: #000; color: #fff; opacity: 1; transition: opacity 0.5s;
+            z-index: 10000; background: #000; color: #fff;
         }
 
         #game-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; z-index: 2000; background: #1a1a1a; }
         
-        /* 白色碎片托盤 */
+        /* 白色托盤：增加亮度讓它更明顯 */
         #tray {
-            position: fixed; top: 70px; left: 5%; width: 90%; height: 20vh;
-            background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.4);
+            position: fixed; top: 80px; left: 5vw; width: 90vw; height: 20vh;
+            background: rgba(255, 255, 255, 0.25); border: 2px solid #fff;
             border-radius: 15px; z-index: 1000; pointer-events: none;
         }
 
         #stage { position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%); display: inline-block; }
-        #bg-image { max-width: 95vw; max-height: 55vh; display: block; opacity: 0.5; transition: all 1s; }
+        #bg-image { max-width: 95vw; max-height: 55vh; display: block; opacity: 0.5; }
 
         .puzzle-piece {
-            position: absolute; width: 100%; z-index: 3000; touch-action: none;
+            position: fixed; /* 改為 Fixed，確保相對於螢幕定位 */
+            width: 100vw;    /* 初始寬度設為螢幕寬，保持比例 */
+            z-index: 3000; touch-action: none;
             filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8)) brightness(1.1);
         }
-        .locked { filter: none !important; pointer-events: none; z-index: 2500 !important; }
+
+        .locked { 
+            position: absolute !important; /* 吸附後回到 Stage 內 */
+            left: 0 !important; top: 0 !important; 
+            filter: none !important; pointer-events: none; z-index: 2500 !important; 
+        }
 
         #msg { position: fixed; top: 20px; width: 100%; text-align: center; color: #fff; z-index: 4000; font-size: 20px; font-weight: bold; }
-
-        .start-btn { 
-            padding: 20px 50px; background: #fff; border: none; border-radius: 50px; 
-            font-weight: bold; font-size: 22px; color: #000; cursor: pointer;
-            box-shadow: 0 0 30px rgba(255,255,255,0.5);
-        }
+        .start-btn { padding: 20px 50px; background: #fff; border: none; border-radius: 50px; font-weight: bold; font-size: 22px; color: #000; }
         .all-done { opacity: 1.0 !important; filter: brightness(1.1); }
     </style>
 </head>
 <body>
 
     <div id="scanner-layer">
-        <p id="loading-text" style="margin-bottom: 30px; color: #aaa;">🔍 系統初始化中...</p>
         <button class="start-btn" onclick="emergencyStart()">開始畫作復原</button>
     </div>
 
@@ -80,44 +80,36 @@
         let currentMaxZ = 3000;
         let hasStarted = false;
 
-        // 【核心修正】緊急強制啟動函數
         function emergencyStart() {
             if (hasStarted) return;
             hasStarted = true;
-            console.log("執行強制啟動...");
-
-            // 1. 強制切換 DOM 顯示，無視任何報錯
-            const scanner = document.getElementById('scanner-layer');
-            const game = document.getElementById('game-layer');
+            document.getElementById('scanner-layer').style.display = 'none';
+            document.getElementById('game-layer').style.display = 'block';
             
-            scanner.style.display = 'none';
-            game.style.display = 'block';
-
-            // 2. 初始化拼圖碎片
             initPieces();
 
-            // 3. 嘗試關閉可能卡住的 AR 系統以節省效能
             try {
                 const sceneEl = document.querySelector('a-scene');
-                if (sceneEl && sceneEl.systems["mindar-image-system"]) {
-                    sceneEl.systems["mindar-image-system"].stop();
-                }
-            } catch(e) { console.warn("AR Stop Failed, ignoring."); }
+                if (sceneEl && sceneEl.systems["mindar-image-system"]) sceneEl.systems["mindar-image-system"].stop();
+            } catch(e){}
         }
 
         function initPieces() {
             const pieces = document.querySelectorAll('.puzzle-piece');
+            const tray = document.getElementById('tray').getBoundingClientRect();
+
             pieces.forEach((p) => {
-                // 座標精確限制在白色托盤內 (螢幕上方區域)
-                const randomX = (Math.random() * 60 - 30); 
-                const randomY = (Math.random() * 12 - 80); 
-                p.style.left = randomX + '%';
-                p.style.top = randomY + '%';
+                // --- 關鍵計算：獲取托盤的螢幕絕對位置 ---
+                // 在托盤範圍內隨機生成 X, Y
+                const randomX = tray.left + (Math.random() * (tray.width - 100)); 
+                const randomY = tray.top + (Math.random() * (tray.height - 50)); 
+                
+                p.style.left = randomX + 'px';
+                p.style.top = randomY + 'px';
                 makeDraggable(p);
             });
         }
 
-        // AR 偵測成功也會自動啟動
         document.getElementById('a-trigger').addEventListener("targetFound", () => {
             if (!hasStarted) emergencyStart();
         });
@@ -132,32 +124,33 @@
                 startX = t.clientX - el.offsetLeft;
                 startY = t.clientY - el.offsetTop;
                 el.style.filter = "drop-shadow(0 0 25px #fff) brightness(1.3)";
-                el.style.transform = "scale(1.05)";
             });
 
             el.addEventListener('touchmove', (e) => {
                 if (el.classList.contains('locked')) return;
                 const t = e.touches[0];
-                const x = t.clientX - startX;
-                const y = t.clientY - startY;
-                el.style.left = x + 'px';
-                el.style.top = y + 'px';
-                if (Math.sqrt(x*x + y*y) < 45) snap(el);
+                el.style.left = (t.clientX - startX) + 'px';
+                el.style.top = (t.clientY - startY) + 'px';
+
+                // 吸附判斷：需換算成相對於 Stage 的位移
+                const stage = document.getElementById('stage').getBoundingClientRect();
+                const diffX = t.clientX - startX - stage.left;
+                const diffY = t.clientY - startY - stage.top;
+
+                if (Math.sqrt(diffX*diffX + diffY*diffY) < 45) {
+                    snap(el);
+                }
             });
 
             el.addEventListener('touchend', () => {
                 if (!el.classList.contains('locked')) {
-                    el.style.transform = "scale(1.0)";
                     el.style.filter = "drop-shadow(0 0 15px rgba(255, 255, 255, 0.8)) brightness(1.1)";
                 }
             });
         }
 
         function snap(el) {
-            el.style.left = "0px";
-            el.style.top = "0px";
-            el.style.transform = "scale(1.0)";
-            el.classList.add('locked');
+            el.classList.add('locked'); // CSS 會強制將 position 改回 absolute 並歸零
             lockedCount++;
             document.getElementById('count').innerText = lockedCount;
             if (navigator.vibrate) navigator.vibrate(50);
@@ -166,11 +159,6 @@
                 document.getElementById('bg-image').classList.add('all-done');
             }
         }
-        
-        // 自動顯示文字更新，確認 Javascript 沒死掉
-        window.onload = () => {
-            document.getElementById('loading-text').innerText = "✅ 系統就緒，請點擊按鈕";
-        };
     </script>
 </body>
 </html>
