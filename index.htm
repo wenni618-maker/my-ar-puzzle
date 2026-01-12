@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>美術教育拼圖遊戲</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
+        
+        /* 遊戲容器：確保底圖比例不變形 */
+        #game-container { position: relative; width: 90vw; height: 90vh; max-width: 1000px; max-height: 800px; background-image: url('bg.jpg'); background-size: contain; background-repeat: no-repeat; background-position: center; border: 2px solid #ccc; background-color: white; }
+
+        /* 拼圖片的基本樣式 */
+        .piece { position: absolute; cursor: grab; touch-action: none; z-index: 10; }
+        .piece:active { cursor: grabbing; }
+
+        /* 左上角座標顯示（調試用，調好位置後可以刪除） */
+        #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-size: 12px; pointer-events: none; z-index: 100; border-radius: 5px; }
+        
+        #message { position: fixed; bottom: 20px; color: #333; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="debug">拖動碎片來查看座標<br>X: 0%, Y: 0%</div>
+    <div id="message">把拼圖拖到正確的位置吧！</div>
+
+    <div id="game-container" id="container">
+        <img src="piece1.png" id="p1" class="piece" 
+             style="width: 15%; left: 5%; top: 10%;" 
+             data-target-x="50.5" data-target-y="30.2">
+
+        <img src="piece2.png" id="p2" class="piece" 
+             style="width: 18%; left: 5%; top: 30%;" 
+             data-target-x="25.0" data-target-y="45.0">
+
+        </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const debug = document.getElementById('debug');
+        let activePiece = null;
+
+        // 拖拽邏輯 (支援滑鼠與手指)
+        document.querySelectorAll('.piece').forEach(piece => {
+            piece.onpointerdown = function(e) {
+                activePiece = piece;
+                piece.setPointerCapture(e.pointerId);
+            };
+
+            piece.onpointermove = function(e) {
+                if (!activePiece) return;
+                
+                // 計算相對於容器的百分比座標
+                const rect = container.getBoundingClientRect();
+                let x = ((e.clientX - rect.left) / rect.width) * 100;
+                let y = ((e.clientY - rect.top) / rect.height) * 100;
+
+                // 讓碎片中心點對準手指/滑鼠
+                piece.style.left = (x - parseFloat(piece.style.width)/2) + '%';
+                piece.style.top = (y - (parseFloat(piece.style.width) * (piece.offsetHeight/piece.offsetWidth))/2) + '%';
+
+                debug.innerHTML = `正在調整: ${piece.id}<br>當前 X: ${x.toFixed(1)}%<br>當前 Y: ${y.toFixed(1)}%`;
+            };
+
+            piece.onpointerup = function(e) {
+                if (!activePiece) return;
+                
+                // 檢查是否接近目標位置
+                const currentX = parseFloat(piece.style.left) + parseFloat(piece.style.width)/2;
+                const currentY = parseFloat(piece.style.top) + (parseFloat(piece.style.width) * (piece.offsetHeight/piece.offsetWidth))/2;
+                
+                const targetX = parseFloat(piece.getAttribute('data-target-x'));
+                const targetY = parseFloat(piece.getAttribute('data-target-y'));
+
+                const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
+
+                if (distance < 3) { // 吸附範圍 (3%)
+                    // 完美的置中對齊
+                    piece.style.left = (targetX - parseFloat(piece.style.width)/2) + '%';
+                    piece.style.top = (targetY - (parseFloat(piece.style.width) * (piece.offsetHeight/piece.offsetWidth))/2) + '%';
+                    piece.style.pointerEvents = 'none'; // 鎖定
+                    piece.style.opacity = '1';
+                    alert(piece.id + " 拼對了！");
+                }
+                
+                activePiece = null;
+            };
+        });
+    </script>
+</body>
+</html>
