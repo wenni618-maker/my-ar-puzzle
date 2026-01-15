@@ -26,24 +26,34 @@
             cursor: grab; 
             touch-action: none; 
             z-index: 10;
-            /* ✨ 預設效果：一圈柔和的白光包圍碎片 */
-            filter: drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.9)) drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.5));
-            transition: filter 0.4s ease, transform 0.1s ease;
+            /* ✨ 預設白光效果 */
+            filter: drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.9));
+            /* 平時只給 filter 過渡，讓吸附時光暈消失得更平滑 */
+            transition: filter 0.2s ease;
         }
         
-     
-	    /* ✨ 成功吸附後：白光完全消失 */
-            .piece.locked { 
+        /* ✨ 關鍵修改：當拼圖被按住拖動時，關閉過渡效果防止「白光暫留」 */
+        .piece:active { 
+            cursor: grabbing; 
+            z-index: 100;
+            transform: scale(1.05); /* 拖動時稍微放大增加手感 */
+            filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 1)); /* 拖動時光芒變亮 */
+            transition: none !important; 
+        }
+
+        /* ✨ 成功吸附後：白光完全消失 */
+        .piece.locked { 
             filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 0));
             z-index: 1;
             pointer-events: none;
             opacity: 1;
+            transform: scale(1);
+            transition: filter 0.4s ease; /* 吸附時光暈平滑淡出 */
         }
 
         #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-size: 12px; pointer-events: none; z-index: 1000; border-radius: 5px; }
         #message { position: fixed; bottom: 20px; color: #333; font-weight: bold; background: white; padding: 8px 20px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; }
     </style>
-
 </head>
 <body>
 
@@ -52,21 +62,13 @@
 
     <div id="game-container">
         <img src="piece1.png" id="p1" class="piece" style="width: 16.5%; left: 5%; top: 2%;" data-target-x="43.8" data-target-y="26.9">
-
         <img src="piece2.png" id="p2" class="piece" style="width: 15.1%; left: 25%; top: 3.5%;" data-target-x="50.1" data-target-y="39.45">
-
         <img src="piece3.png" id="p3" class="piece" style="width: 9.3%; left: 45%; top: 3.5%;" data-target-x="18.7" data-target-y="27.4">
-
         <img src="piece4.png" id="p4" class="piece" style="width: 12.1%; left: 60%; top: 3.5%;" data-target-x="34.2" data-target-y="43.5">
-
         <img src="piece5.png" id="p5" class="piece" style="width: 20.5%; left: 75%; top: 3.5%;" data-target-x="15.2" data-target-y="41.5">
-
         <img src="piece6.png" id="p6" class="piece" style="width: 12.65%; left: 5%; top: 88%;" data-target-x="34.9" data-target-y="59.2">
-
         <img src="piece7.png" id="p7" class="piece" style="width: 16.4%; left: 25%; top: 88%;" data-target-x="9.5" data-target-y="53.7">
-
         <img src="piece8.png" id="p8" class="piece" style="width: 11%; left: 45%; top: 85%;" data-target-x="61.05" data-target-y="62.2">
-
         <img src="piece9.png" id="p9" class="piece" style="width: 16.5%; left: 60%; top: 85%;" data-target-x="25.1" data-target-y="73.1">
     </div>
 
@@ -77,6 +79,7 @@
 
         document.querySelectorAll('.piece').forEach(piece => {
             piece.onpointerdown = function(e) {
+                if(piece.classList.contains('locked')) return;
                 activePiece = piece;
                 piece.setPointerCapture(e.pointerId);
             };
@@ -88,41 +91,34 @@
                 let x = ((e.clientX - rect.left) / rect.width) * 100;
                 let y = ((e.clientY - rect.top) / rect.height) * 100;
 
-                const pWidth = parseFloat(piece.style.width);
-                const pHeight = (piece.offsetHeight / rect.height) * 100;
+                const pWidth = parseFloat(activePiece.style.width);
+                const pHeight = (activePiece.offsetHeight / rect.height) * 100;
 
-                piece.style.left = (x - pWidth/2) + '%';
-                piece.style.top = (y - pHeight/2) + '%';
+                activePiece.style.left = (x - pWidth/2) + '%';
+                activePiece.style.top = (y - pHeight/2) + '%';
 
-                debug.innerHTML = `正在調整: ${piece.id}<br>當前 X: ${x.toFixed(1)}%<br>當前 Y: ${y.toFixed(1)}%`;
+                debug.innerHTML = `正在調整: ${activePiece.id}<br>當前 X: ${x.toFixed(1)}%<br>當前 Y: ${y.toFixed(1)}%`;
             };
 
             piece.onpointerup = function(e) {
                 if (!activePiece) return;
                 
                 const rect = container.getBoundingClientRect();
-                const pWidth = parseFloat(piece.style.width);
-                const pHeight = (piece.offsetHeight / rect.height) * 100;
+                const pWidth = parseFloat(activePiece.style.width);
+                const pHeight = (activePiece.offsetHeight / rect.height) * 100;
 
-                const currentX = parseFloat(piece.style.left) + pWidth/2;
-                const currentY = parseFloat(piece.style.top) + pHeight/2;
+                const currentX = parseFloat(activePiece.style.left) + pWidth/2;
+                const currentY = parseFloat(activePiece.style.top) + pHeight/2;
                 
-                const targetX = parseFloat(piece.getAttribute('data-target-x'));
-                const targetY = parseFloat(piece.getAttribute('data-target-y'));
+                const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
+                const targetY = parseFloat(activePiece.getAttribute('data-target-y'));
 
                 const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
 
-                // 吸附範圍判定：這裡設定為 4%，讓玩家更容易成功
                 if (distance < 4) { 
-                    // 自動吸附到目標座標
-                    piece.style.left = (targetX - pWidth/2) + '%';
-                    piece.style.top = (targetY - pHeight/2) + '%';
-                    
-                    // 鎖定狀態
-                    piece.style.pointerEvents = 'none'; 
-                    piece.classList.add('locked');
-                    
-                    // 檢查是否全部完成 (選配功能)
+                    activePiece.style.left = (targetX - pWidth/2) + '%';
+                    activePiece.style.top = (targetY - pHeight/2) + '%';
+                    activePiece.classList.add('locked');
                     checkWin();
                 }
                 
@@ -135,6 +131,7 @@
             if (lockedPieces === 9) {
                 document.getElementById('message').innerText = "恭喜完成！水墨畫完美呈現。";
                 document.getElementById('message').style.color = "green";
+                document.getElementById('message').style.backgroundColor = "#e8f5e9";
             }
         }
     </script>
