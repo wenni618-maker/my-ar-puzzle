@@ -26,28 +26,62 @@
             cursor: grab; 
             touch-action: none; 
             z-index: 10;
-            /* ✨ 預設白光效果 */
             filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 0.9));
-            
         }
         
-        /* ✨ 關鍵修改：當拼圖被按住拖動時，關閉過渡效果防止「白光暫留」 */
         .piece:active { 
             cursor: grabbing; 
             z-index: 100;
-            transform: scale(1.15); /* 拖動時稍微放大增加手感 */
-            filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 1)); /* 拖動時光芒變亮 */
+            transform: scale(1.15); 
+            filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 1)); 
             transition: none !important; 
         }
 
-        /* ✨ 成功吸附後：白光完全消失 */
         .piece.locked { 
             filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 0));
             z-index: 1;
             pointer-events: none;
             opacity: 1;
             transform: scale(1);
-            transition: filter 0.4s ease; /* 吸附時光暈平滑淡出 */
+            transition: filter 0.4s ease; 
+        }
+
+        /* ✨ 完成後的覆蓋畫面 */
+        #complete-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('complete.jpg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-color: white;
+            z-index: 2000;
+            display: none;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+            /* ✨ 使用 Flexbox 讓內容完全居中 */
+            display: none; 
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ✨ 30% 透明度的白色色塊層 */
+        #complete-banner {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.3); /* 30% 透明度白色 */
+            padding: 40px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        #complete-text {
+            font-size: 3rem;
+            color: #1a1a1a;
+            font-weight: bold;
+            letter-spacing: 10px;
+            text-shadow: 0px 0px 10px rgba(255,255,255,0.8);
         }
 
         #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-size: 12px; pointer-events: none; z-index: 1000; border-radius: 5px; }
@@ -60,6 +94,12 @@
     <div id="message">將碎片拖動至正確位置</div>
 
     <div id="game-container">
+        <div id="complete-overlay">
+            <div id="complete-banner">
+                <div id="complete-text">修復成功</div>
+            </div>
+        </div>
+
         <img src="piece1.png" id="p1" class="piece" style="width: 16.5%; left: 5%; top: 2%;" data-target-x="43.8" data-target-y="26.2">
         <img src="piece2.png" id="p2" class="piece" style="width: 15.1%; left: 25%; top: 3.5%;" data-target-x="50" data-target-y="39.1">
         <img src="piece3.png" id="p3" class="piece" style="width: 9.3%; left: 45%; top: 3.5%;" data-target-x="18.6" data-target-y="27">
@@ -128,9 +168,12 @@
         function checkWin() {
             const lockedPieces = document.querySelectorAll('.piece.locked').length;
             if (lockedPieces === 9) {
-                document.getElementById('message').innerText = "恭喜完成！水墨畫完美呈現。";
-                document.getElementById('message').style.color = "green";
-                document.getElementById('message').style.backgroundColor = "#e8f5e9";
+                document.getElementById('message').innerText = "修復完成";
+                const overlay = document.getElementById('complete-overlay');
+                overlay.style.display = 'flex';
+                setTimeout(() => {
+                    overlay.style.opacity = '1';
+                }, 100);
             }
         }
     </script>
