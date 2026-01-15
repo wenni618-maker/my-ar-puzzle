@@ -59,16 +59,14 @@
             display: none;
             opacity: 0;
             transition: opacity 1.5s ease;
-            /* ✨ 使用 Flexbox 讓內容完全居中 */
-            display: none; 
             justify-content: center;
             align-items: center;
         }
 
-        /* ✨ 30% 透明度的白色色塊層 */
+        /* ✨ 45% 透明度的白色色塊層 */
         #complete-banner {
             width: 100%;
-            background-color: rgba(255, 255, 255, 0.3); /* 30% 透明度白色 */
+            background-color: rgba(255, 255, 255, 0.45); /* 45% 透明度白色 */
             padding: 40px 0;
             display: flex;
             justify-content: center;
@@ -85,7 +83,9 @@
         }
 
         #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-size: 12px; pointer-events: none; z-index: 1000; border-radius: 5px; }
-        #message { position: fixed; bottom: 20px; color: #333; font-weight: bold; background: white; padding: 8px 20px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; }
+        
+        /* ✨ 隱藏原本畫面最下方的提示文字框 */
+        #message { display: none; }
     </style>
 </head>
 <body>
@@ -168,7 +168,6 @@
         function checkWin() {
             const lockedPieces = document.querySelectorAll('.piece.locked').length;
             if (lockedPieces === 9) {
-                document.getElementById('message').innerText = "修復完成";
                 const overlay = document.getElementById('complete-overlay');
                 overlay.style.display = 'flex';
                 setTimeout(() => {
