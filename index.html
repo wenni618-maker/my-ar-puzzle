@@ -36,14 +36,14 @@
             cursor: grab; 
             touch-action: none; 
             z-index: 10;
-            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));
+            filter: drop-shadow(0px 0px 0px rgba(0,0,0,0.5));
             transition: transform 0.2s;
         }
 
         .piece:active { 
             cursor: grabbing; 
             z-index: 100; 
-            transform: scale(1.1); 
+            transform: scale(1); /*拼圖的放大縮小*/
         }
 
         .piece.locked { 
