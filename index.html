@@ -7,31 +7,39 @@
     <style>
         body { margin: 0; padding: 0; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
         
+        /* 白色大背景 */
         #game-container { 
             position: relative; 
-            /* ✨ 直式預設 */
+            background-color: white; 
+            border: 2px solid #ccc; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: auto;
+            /* 直式 */
             width: 90vw; 
-            max-width: 700px; 
-            aspect-ratio: 190 / 260; 
+            height: 80vh; 
+            max-width: 500px;
+        }
+
+        /* 橫式：白色區域變寬變矮 */
+        @media (orientation: landscape) {
+            #game-container {
+                width: 60vw; 
+                height: 75vh;
+                max-width: none;
+            }
+        }
+
+        /* ✨ 核心修正層：這個容器會自動縮放並維持 190:260 比例，永遠貼齊底圖 */
+        #board-wrapper {
+            position: relative;
+            height: 100%;
+            aspect-ratio: 190 / 260; /* 強制內容比例不跑掉 */
             background-image: url('bg.jpg'); 
             background-size: contain; 
             background-repeat: no-repeat; 
-            background-position: center; 
-            border: 2px solid #ccc; 
-            background-color: white; 
-            margin: auto;
-        }
-
-        /* ✨ 關鍵修改：當裝置為橫式（Landscape）時 */
-        @media (orientation: landscape) {
-            #game-container {
-                /* 讓寬度變大，佔據螢幕大部分寬度 */
-                width: 80vw; 
-                /* 高度則由比例自動計算，因為 190/260 是直的，在橫式螢幕上高度會自動縮減以符合比例 */
-                height: auto; 
-                max-height: 85vh; /* 確保不會超出螢幕上下範圍 */
-                max-width: none;
-            }
+            background-position: center;
         }
 
         .piece { 
@@ -39,25 +47,13 @@
             cursor: grab; 
             touch-action: none; 
             z-index: 10;
-            filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 0.9));
         }
         
-        .piece:active { 
-            cursor: grabbing; 
-            z-index: 100;
-            transform: scale(1);
-            filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 1)); 
-            transition: none !important; 
-        }
+        /* 確保拼圖圖片填滿其座標區塊 */
+        .piece img { width: 100%; height: auto; display: block; }
 
-        .piece.locked { 
-            filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 0));
-            z-index: 1;
-            pointer-events: none;
-            opacity: 1;
-            transform: scale(1);
-            transition: filter 0.4s ease; 
-        }
+        .piece:active { cursor: grabbing; z-index: 100; transform: scale(1.1); }
+        .piece.locked { z-index: 1; pointer-events: none; }
 
         #complete-overlay {
             position: absolute;
@@ -84,15 +80,8 @@
             align-items: center;
         }
 
-        #complete-text {
-            font-size: 3rem;
-            color: #1a1a1a;
-            font-weight: bold;
-            letter-spacing: 10px;
-            text-shadow: 0px 0px 10px rgba(255,255,255,0.8);
-        }
-
-        #message { position: fixed; bottom: 20px; color: #333; font-weight: bold; background: white; padding: 8px 20px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; }
+        #complete-text { font-size: 3rem; color: #1a1a1a; font-weight: bold; letter-spacing: 10px; }
+        #message { position: fixed; bottom: 20px; color: #333; font-weight: bold; background: white; padding: 8px 20px; border-radius: 20px; z-index: 1000; }
         #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-size: 12px; pointer-events: none; z-index: 1000; border-radius: 5px; }
     </style>
 </head>
@@ -102,25 +91,27 @@
     <div id="message">將碎片拖動至正確位置</div>
 
     <div id="game-container">
-        <div id="complete-overlay">
-            <div id="complete-banner">
-                <div id="complete-text">修復成功</div>
+        <div id="board-wrapper">
+            <div id="complete-overlay">
+                <div id="complete-banner">
+                    <div id="complete-text">修復成功</div>
+                </div>
             </div>
-        </div>
 
-        <img src="piece1.png" id="p1" class="piece" style="width: 16.5%; left: 5%; top: 5%;" data-target-x="43.8" data-target-y="31.3">
-        <img src="piece2.png" id="p2" class="piece" style="width: 15.1%; left: 25%; top: 6.5%;" data-target-x="50.1" data-target-y="41.4">
-        <img src="piece3.png" id="p3" class="piece" style="width: 9.3%; left: 45%; top: 6.5%;" data-target-x="18.6" data-target-y="31.9">
-        <img src="piece4.png" id="p4" class="piece" style="width: 12.1%; left: 60%; top: 6.5%;" data-target-x="34.2" data-target-y="44.6">
-        <img src="piece5.png" id="p5" class="piece" style="width: 20.53%; left: 75%; top: 6.5%;" data-target-x="15.3" data-target-y="43">
-        <img src="piece6.png" id="p6" class="piece" style="width: 12.65%; left: 5%; top: 85%;" data-target-x="34.9" data-target-y="57.1">
-        <img src="piece7.png" id="p7" class="piece" style="width: 16.4%; left: 25%; top: 85%;" data-target-x="9.5" data-target-y="52.7">
-        <img src="piece8.png" id="p8" class="piece" style="width: 11%; left: 45%; top: 82%;" data-target-x="60.9" data-target-y="59">
-        <img src="piece9.png" id="p9" class="piece" style="width: 16.5%; left: 60%; top: 82%;" data-target-x="25.1" data-target-y="67.9">
+            <img src="piece1.png" id="p1" class="piece" style="width: 16.5%; left: 5%; top: 5%;" data-target-x="43.8" data-target-y="31.3">
+            <img src="piece2.png" id="p2" class="piece" style="width: 15.1%; left: 25%; top: 6.5%;" data-target-x="50.1" data-target-y="41.4">
+            <img src="piece3.png" id="p3" class="piece" style="width: 9.3%; left: 45%; top: 6.5%;" data-target-x="18.6" data-target-y="31.9">
+            <img src="piece4.png" id="p4" class="piece" style="width: 12.1%; left: 60%; top: 6.5%;" data-target-x="34.2" data-target-y="44.6">
+            <img src="piece5.png" id="p5" class="piece" style="width: 20.53%; left: 75%; top: 6.5%;" data-target-x="15.3" data-target-y="43">
+            <img src="piece6.png" id="p6" class="piece" style="width: 12.65%; left: 5%; top: 85%;" data-target-x="34.9" data-target-y="57.1">
+            <img src="piece7.png" id="p7" class="piece" style="width: 16.4%; left: 25%; top: 85%;" data-target-x="9.5" data-target-y="52.7">
+            <img src="piece8.png" id="p8" class="piece" style="width: 11%; left: 45%; top: 82%;" data-target-x="60.9" data-target-y="59">
+            <img src="piece9.png" id="p9" class="piece" style="width: 16.5%; left: 60%; top: 82%;" data-target-x="25.1" data-target-y="67.9">
+        </div>
     </div>
 
     <script>
-        const container = document.getElementById('game-container');
+        const container = document.getElementById('board-wrapper'); // 座標基準改為 board-wrapper
         const debug = document.getElementById('debug');
         let activePiece = null;
 
@@ -134,12 +125,16 @@
             piece.onpointermove = function(e) {
                 if (!activePiece) return;
                 const rect = container.getBoundingClientRect();
+                
                 let x = ((e.clientX - rect.left) / rect.width) * 100;
                 let y = ((e.clientY - rect.top) / rect.height) * 100;
+
                 const pWidth = parseFloat(activePiece.style.width);
                 const pHeight = (activePiece.offsetHeight / rect.height) * 100;
+
                 activePiece.style.left = (x - pWidth/2) + '%';
                 activePiece.style.top = (y - pHeight/2) + '%';
+
                 debug.innerHTML = `正在調整: ${activePiece.id}<br>當前 X: ${x.toFixed(1)}%<br>當前 Y: ${y.toFixed(1)}%`;
             };
 
@@ -152,7 +147,9 @@
                 const currentY = parseFloat(activePiece.style.top) + pHeight/2;
                 const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
                 const targetY = parseFloat(activePiece.getAttribute('data-target-y'));
+
                 const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
+
                 if (distance < 4) { 
                     activePiece.style.left = (targetX - pWidth/2) + '%';
                     activePiece.style.top = (targetY - pHeight/2) + '%';
