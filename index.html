@@ -9,9 +9,12 @@
         
         #game-container { 
             position: relative; 
-            /* ✨ 根據 190x260mm 比例設定容器 */
-            width: 90vw; 
-            max-width: 500px; /* 直式底圖限制最大寬度防止過大 */
+            /* ✨ 核心修改：自適應邏輯 */
+            width: 90vw; /* 手機端佔據寬度 */
+            max-width: 700px; /* 在 iPad/大螢幕上允許更大的顯示範圍 */
+            max-height: 85vh; /* 確保在長型手機上不會超出畫面高度 */
+            
+            /* ✨ 根據 190x260mm 比例固定容器，確保跨裝置對位不偏移 */
             aspect-ratio: 190 / 260; 
             
             background-image: url('bg.jpg'); 
