@@ -3,59 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>水墨碎片修復 - 橫式</title>
+    <title>水墨碎片修復 - 橫式自適應</title>
     <style>
-        /* 強制全屏佈局 */
         body { 
             margin: 0; padding: 0; 
             display: flex; justify-content: center; align-items: center; 
-            height: 100vh; width: 100vw; overflow: hidden; font-family: "Microsoft JhengHei", sans-serif;
-            background-color: #1a1a1a; /* 螢幕最外層底色 */
+            height: 100vh; width: 100vw; overflow: hidden; 
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #1a1a1a; 
         }
 
         #game-container { 
             position: relative; 
-            height: 75vh; /* 高度佔螢幕 85% */
-            aspect-ratio: 370 / 190; /* 寬度遠大於高度，營造左右留白效果 */
+            /* 核心修改：寬度與高度自適應，不超出螢幕 */
+            width: 90vw; 
+            max-width: 1000px; /* 可選，設定最大顯示寬度 */
+            aspect-ratio: 370 / 190; 
+            max-height: 80vh; 
             
-            /* 背景圖設定：置中且不重複 */
             background-image: url('bg.jpg'); 
             background-size: contain; 
             background-repeat: no-repeat; 
             background-position: center; 
             
-            background-color: #ccc; /* 容器兩側露出的顏色 */
-            border: 5px solid #ccc;
-            box-shadow: 0px 0px 0px rgba(0,0,0,0.8);
+            background-color: #ccc; 
+            border: 2px solid #ccc;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
             overflow: visible;
         }
 
-        /* 碎片樣式 */
         .piece { 
             position: absolute; 
             cursor: grab; 
             touch-action: none; 
             z-index: 10;
-            filter: drop-shadow(0px 0px 0px rgba(0,0,0,0.5));
             transition: transform 0.2s;
         }
 
         .piece:active { 
             cursor: grabbing; 
             z-index: 100; 
-            transform: scale(1); /*拼圖的放大縮小*/
         }
 
         .piece.locked { 
             z-index: 1; 
             pointer-events: none; 
-            filter: none;
             transition: all 0.4s ease-out;
         }
 
-        /* 完成後的覆蓋層 */
         #complete-overlay {
-             position: absolute;
+            position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background-image: url('complete.jpg');
             background-size: contain;
@@ -66,58 +63,51 @@
             display: none;
             opacity: 0;
             transition: opacity 1.5s ease;
+            display: flex;
             justify-content: center;
             align-items: center;
         }
 
         #complete-banner {
             width: 100%;
-            background-color: rgba(255, 255, 255, 0.45); 
-            padding: 40px 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background-color: rgba(255, 255, 255, 0.6); 
+            padding: 20px 0;
+            text-align: center;
         }
 
         #complete-text {
-            font-size: 3rem;
+            font-size: 2rem;
             color: #1a1a1a;
             font-weight: bold;
             letter-spacing: 10px;
-            text-shadow: 0px 0px 10px rgba(255,255,255,0.8);
         }
 
-
-
-        #message { position: fixed; bottom: 3%; color: white; background: rgba(0,0,0,0.6); padding: 10px 25px; border-radius: 30px; z-index: 1000; pointer-events: none; }
-        
-        #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-size: 12px; z-index: 3000; pointer-events: none; border-radius: 5px; }
+        #message { position: fixed; bottom: 5%; color: white; background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 30px; z-index: 1000; pointer-events: none; font-size: 14px; }
+        #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 5px; font-size: 10px; z-index: 3000; pointer-events: none; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="debug">對位模式 (橫式)</div>
+    <div id="debug">對位模式 (自適應)</div>
     <div id="message">將碎片拖動至正確位置</div>
 
     <div id="game-container">
-        <div id="game-container">
-        <div id="complete-overlay">
+        <div id="complete-overlay" style="display: none;">
             <div id="complete-banner">
                 <div id="complete-text">修復成功</div>
             </div>
         </div>
 
+        <img src="piece1.png" id="p1" class="piece" style="width: 11.5%; left: 2%; top: 5%;" data-target-x="" data-target-y="">
+        <img src="piece2.png" id="p2" class="piece" style="width: 10.5%; left: 2%; top: 25%;" data-target-x="" data-target-y="">
+        <img src="piece3.png" id="p3" class="piece" style="width: 6.5%; left: 2%; top: 45%;" data-target-x="" data-target-y="">
+        <img src="piece4.png" id="p4" class="piece" style="width: 8%; left: 2%; top: 65%;" data-target-x="" data-target-y="">
         
-        <img src="piece1.png" id="p1" class="piece" style="width: 12.11%; left: 5%; top: 10%;" data-target-x="45.8" data-target-y="14.4">
-        <img src="piece2.png" id="p2" class="piece" style="width: 10.13%; left: 3%; top: 35%;" data-target-x="" data-target-y="">
-        <img src="piece3.png" id="p3" class="piece" style="width: 6.05%; left: 3%; top: 60%;" data-target-x="" data-target-y="">
-        <img src="piece4.png" id="p4" class="piece" style="width: 8.07%; left: 4%; top: 80%;" data-target-x="" data-target-y="">
-        
-        <img src="piece5.png" id="p5" class="piece" style="width: 13.04%; left: 90%; top: 5%;" data-target-x="" data-target-y="">
-        <img src="piece6.png" id="p6" class="piece" style="width: 8%; left: 90%; top: 25%;" data-target-x="" data-target-y="">
-        <img src="piece7.png" id="p7" class="piece" style="width: 11%; left: 89%; top: 40%;" data-target-x="" data-target-y="">
-        <img src="piece8.png" id="p8" class="piece" style="width: 7%; left: 92%; top: 65%;" data-target-x="" data-target-y="">
-        <img src="piece9.png" id="p9" class="piece" style="width: 11.11%; left: 90%; top: 85%;" data-target-x="" data-target-y="">
+        <img src="piece5.png" id="p5" class="piece" style="width: 13.8%; left: 85%; top: 5%;" data-target-x="" data-target-y="">
+        <img src="piece6.png" id="p6" class="piece" style="width: 8%; left: 85%; top: 25%;" data-target-x="" data-target-y="">
+        <img src="piece7.png" id="p7" class="piece" style="width: 11%; left: 85%; top: 45%;" data-target-x="" data-target-y="">
+        <img src="piece8.png" id="p8" class="piece" style="width: 7%; left: 85%; top: 65%;" data-target-x="" data-target-y="">
+        <img src="piece9.png" id="p9" class="piece" style="width: 11%; left: 85%; top: 85%;" data-target-x="" data-target-y="">
     </div>
 
     <script>
@@ -136,19 +126,17 @@
                 if (!activePiece) return;
                 const rect = container.getBoundingClientRect();
                 
-                // 計算相對位置百分比
                 let x = ((e.clientX - rect.left) / rect.width) * 100;
                 let y = ((e.clientY - rect.top) / rect.height) * 100;
                 
                 const pWidth = parseFloat(activePiece.style.width);
+                // 使用比例換算高度
                 const pHeight = (activePiece.offsetHeight / rect.height) * 100;
 
-                // 讓滑鼠位於碎片中心
                 activePiece.style.left = (x - pWidth/2) + '%';
                 activePiece.style.top = (y - pHeight/2) + '%';
 
-                // 更新 Debug 資訊
-                debug.innerHTML = `正在移動: ${activePiece.id}<br>目標 X: ${activePiece.getAttribute('data-target-x')}%<br>目前 X: ${x.toFixed(1)}%<br>目前 Y: ${y.toFixed(1)}%`;
+                debug.innerHTML = `ID: ${activePiece.id}<br>目標 X: ${activePiece.getAttribute('data-target-x')}%<br>目前中心 X: ${x.toFixed(1)}%<br>目前中心 Y: ${y.toFixed(1)}%`;
             };
 
             piece.onpointerup = function(e) {
@@ -164,14 +152,14 @@
                 const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
                 const targetY = parseFloat(activePiece.getAttribute('data-target-y'));
 
-                // 計算中心點與目標點的距離
-                const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
-
-                if (distance < 4.5) { // 磁吸範圍
-                    activePiece.style.left = (targetX - pWidth/2) + '%';
-                    activePiece.style.top = (targetY - pHeight/2) + '%';
-                    activePiece.classList.add('locked');
-                    checkWin();
+                if (!isNaN(targetX) && !isNaN(targetY)) {
+                    const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
+                    if (distance < 5) { 
+                        activePiece.style.left = (targetX - pWidth/2) + '%';
+                        activePiece.style.top = (targetY - pHeight/2) + '%';
+                        activePiece.classList.add('locked');
+                        checkWin();
+                    }
                 }
                 activePiece = null;
             };
@@ -181,7 +169,7 @@
             const lockedCount = document.querySelectorAll('.piece.locked').length;
             if (lockedCount === 9) {
                 const ov = document.getElementById('complete-overlay');
-                ov.style.display = 'block';
+                ov.style.display = 'flex';
                 setTimeout(() => {
                     ov.style.opacity = '1';
                     document.getElementById('message').innerText = "修復完成！";
@@ -189,7 +177,6 @@
             }
         }
 
-        // 阻止移動端瀏覽器預設行為（如縮放或下拉刷新）
         document.addEventListener('touchmove', (e) => {
             if (e.target.classList.contains('piece')) e.preventDefault();
         }, { passive: false });
