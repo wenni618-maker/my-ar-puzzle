@@ -9,16 +9,18 @@
         
         #game-container { 
             position: relative; 
+            /* ✨ 根據 190x260mm 比例設定容器 */
             width: 90vw; 
-            height: 90vh; 
-            max-width: 1000px; 
-            max-height: 800px; 
+            max-width: 500px; /* 直式底圖限制最大寬度防止過大 */
+            aspect-ratio: 190 / 260; 
+            
             background-image: url('bg.jpg'); 
             background-size: contain; 
             background-repeat: no-repeat; 
             background-position: center; 
             border: 2px solid #ccc; 
             background-color: white; 
+            margin: auto;
         }
 
         .piece { 
@@ -26,6 +28,7 @@
             cursor: grab; 
             touch-action: none; 
             z-index: 10;
+            /* ✨ 維持您的要求：白光數值為 0 */
             filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 0.9));
         }
         
@@ -69,7 +72,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 0 20px rgba(0,0,0,0.05);
         }
 
         #complete-text {
@@ -81,10 +83,14 @@
         }
 
         #message { position: fixed; bottom: 20px; color: #333; font-weight: bold; background: white; padding: 8px 20px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; }
+
+        /* ✨ 保留 Debug 區塊方便您在 iPad 重新對位 */
+        #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-size: 12px; pointer-events: none; z-index: 1000; border-radius: 5px; }
     </style>
 </head>
 <body>
 
+    <div id="debug">對位模式已開啟</div>
     <div id="message">將碎片拖動至正確位置</div>
 
     <div id="game-container">
@@ -107,6 +113,7 @@
 
     <script>
         const container = document.getElementById('game-container');
+        const debug = document.getElementById('debug');
         let activePiece = null;
 
         document.querySelectorAll('.piece').forEach(piece => {
@@ -128,6 +135,8 @@
 
                 activePiece.style.left = (x - pWidth/2) + '%';
                 activePiece.style.top = (y - pHeight/2) + '%';
+
+                debug.innerHTML = `正在調整: ${activePiece.id}<br>當前 X: ${x.toFixed(1)}%<br>當前 Y: ${y.toFixed(1)}%`;
             };
 
             piece.onpointerup = function(e) {
