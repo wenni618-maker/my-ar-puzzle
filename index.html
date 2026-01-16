@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>水墨碎片修復 - 最終適應版</title>
+    <title>水墨碎片修復 - 最終全自適應版</title>
     <style>
         body { 
             margin: 0; padding: 0; 
@@ -15,16 +15,16 @@
 
         #game-container { 
             position: relative; 
-            /* 1. 鎖定容器比例 370:190 (座標系統基準) */
+            /* 1. 鎖定容器比例 370:190 */
             aspect-ratio: 370 / 190; 
             
-            /* 2. 核心修正：使用 vmin 確保在任何比例的螢幕下，寬或高都不會超出 */
-            /* 意思是：取螢幕寬或高之中較短的那一邊，作為基準來縮放 */
-            width: 95vw; 
+            /* 2. 核心修正：使用 vmin 作為最大限制 */
+            /* 在橫向螢幕時，高度會優先被 85vh 限制住，寬度自動縮小，絕不超出範圍 */
+            width: 95vw;
             height: auto;
-            max-width: calc(95vh * (370 / 190)); 
-            max-height: 95vh;
-
+            max-height: 85vh; 
+            max-width: calc(85vh * (370 / 190)); 
+            
             margin: auto;
 
             /* 3. 背景圖精確計算：底圖 260，容器 370 */
@@ -44,17 +44,17 @@
             cursor: grab; 
             touch-action: none; 
             z-index: 10;
-            transition: transform 0.2s ease-out;
+            transition: transform 0.2s ease-out; /* 抓取平滑動畫 */
             transform-origin: center; 
         }
 
         /* 抓取時放大效果 */
         .piece.dragging {
-            transform: scale(1.15);
+            transform: scale(1.15); /* 放大 1.15 倍 */
             z-index: 100;
         }
 
-        /* 鎖定或放開時回到原大小 */
+        /* 鎖定或放開時回到原始大小 */
         .piece.locked { 
             z-index: 1; 
             pointer-events: none; 
@@ -74,40 +74,20 @@
             display: none;
             opacity: 0;
             transition: opacity 1.5s ease;
-            justify-content: center;
-            align-items: center;
         }
 
-        #complete-banner {
-            width: 100%;
-            background-color: rgba(255, 255, 255, 0.6); 
-            padding: 20px 0;
-            text-align: center;
-        }
-
-        #complete-text {
-            font-size: 2rem;
-            color: #1a1a1a;
-            font-weight: bold;
-            letter-spacing: 10px;
-        }
-
-        /* 訊息列與 Debug 調整為更適合手機的大小 */
+        /* 訊息與偵錯文字：針對手機縮小尺寸 */
         #message { position: fixed; bottom: 3%; color: white; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 30px; z-index: 1000; pointer-events: none; font-size: 12px; }
         #debug { position: fixed; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: #0f0; padding: 5px; font-size: 10px; z-index: 3000; pointer-events: none; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="debug">對位模式 (自適應優化)</div>
+    <div id="debug">對位模式 (高度優先)</div>
     <div id="message">將碎片拖動至正確位置</div>
 
     <div id="game-container">
-        <div id="complete-overlay">
-            <div id="complete-banner">
-                <div id="complete-text">修復成功</div>
-            </div>
-        </div>
+        <div id="complete-overlay"></div>
 
         <img src="piece1.png" id="p1" class="piece" style="width: 11.5%; left: 2%; top: 5%;" data-target-x="45.66" data-target-y="14.6">
         <img src="piece2.png" id="p2" class="piece" style="width: 10.5%; left: 2%; top: 25%;" data-target-x="50.1" data-target-y="33.8">
@@ -130,7 +110,7 @@
             piece.onpointerdown = function(e) {
                 if(piece.classList.contains('locked')) return;
                 activePiece = piece;
-                activePiece.classList.add('dragging');
+                activePiece.classList.add('dragging'); // 增加抓取效果
                 piece.setPointerCapture(e.pointerId);
             };
 
@@ -163,7 +143,7 @@
                 const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
                 const targetY = parseFloat(activePiece.getAttribute('data-target-y'));
 
-                activePiece.classList.remove('dragging');
+                activePiece.classList.remove('dragging'); // 移除抓取效果
 
                 if (!isNaN(targetX) && !isNaN(targetY)) {
                     const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
@@ -183,7 +163,7 @@
             const lockedCount = document.querySelectorAll('.piece.locked').length;
             if (lockedCount === 9) {
                 const ov = document.getElementById('complete-overlay');
-                ov.style.display = 'flex';
+                ov.style.display = 'block';
                 setTimeout(() => {
                     ov.style.opacity = '1';
                     document.getElementById('message').innerText = "修復完成！";
