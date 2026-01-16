@@ -5,24 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>水墨碎片修復</title>
     <style>
-        body { 
-            margin: 0; padding: 0; 
-            background-color: #f4f4f4; 
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; overflow: hidden; font-family: sans-serif; 
-        }
+        body { margin: 0; padding: 0; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
         
         #game-container { 
             position: relative; 
-            /* ✨ 關鍵修改：確保無論直橫式，容器都不會超出螢幕高度 */
+            /* ✨ 直式預設：寬度優先 */
             width: 90vw; 
             max-width: 700px; 
-            /* 使用 vmin 確保在橫式時，會以螢幕高度為基準來縮放 */
-            max-height: 90vh;
-            
-            /* ✨ 根據 190x260mm 比例固定容器 */
             aspect-ratio: 190 / 260; 
-            
             background-image: url('bg.jpg'); 
             background-size: contain; 
             background-repeat: no-repeat; 
@@ -30,15 +20,16 @@
             border: 2px solid #ccc; 
             background-color: white; 
             margin: auto;
-            /* 解決橫式溢出的保險設定 */
-            object-fit: contain;
         }
 
-        /* ✨ 針對橫式螢幕（Landscape）的特殊調整 */
+        /* ✨ 關鍵修改：當裝置為橫式（Landscape）時 */
         @media (orientation: landscape) {
             #game-container {
-                width: auto; /* 寬度設為自動 */
-                height: 85vh; /* 改以螢幕高度為基準 */
+                /* 讓高度貼近視窗高度（配合底圖 bg.jpg 的比例） */
+                height: 85vh; 
+                width: auto; /* 寬度根據 aspect-ratio 自動增加 */
+                max-width: 95vw; 
+                max-height: none;
             }
         }
 
