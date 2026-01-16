@@ -55,21 +55,38 @@
 
         /* 完成後的覆蓋層 */
         #complete-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('complete.jpg'); 
-            background-size: contain; 
+             position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('complete.jpg');
+            background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
-            z-index: 2000; display: none; opacity: 0; 
-            transition: opacity 1.2s ease;
+            background-color: white;
+            z-index: 2000;
+            display: none;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+            justify-content: center;
+            align-items: center;
         }
-	#complete-text {
+
+        #complete-banner {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.45); 
+            padding: 40px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #complete-text {
             font-size: 3rem;
             color: #1a1a1a;
             font-weight: bold;
             letter-spacing: 10px;
             text-shadow: 0px 0px 10px rgba(255,255,255,0.8);
         }
+
 
 
         #message { position: fixed; bottom: 3%; color: white; background: rgba(0,0,0,0.6); padding: 10px 25px; border-radius: 30px; z-index: 1000; pointer-events: none; }
@@ -97,7 +114,7 @@
         <img src="piece4.png" id="p4" class="piece" style="width: 9.07%; left: 4%; top: 80%;" data-target-x="38.2" data-target-y="39.85">
         
         <img src="piece5.png" id="p5" class="piece" style="width: 15.04%; left: 90%; top: 5%;" data-target-x="24.2" data-target-y="36.82">
-        <img src="piece6.png" id="p6" class="piece" style="width: 9%; left: 90%; top: 25%;" data-target-x="39" data-target-y="63.1">
+        <img src="piece6.png" id="p6" class="piece" style="width: 9%; left: 90%; top: 25%;" data-target-x="38" data-target-y="63.2">
         <img src="piece7.png" id="p7" class="piece" style="width: 12%; left: 89%; top: 40%;" data-target-x="20" data-target-y="55.1">
         <img src="piece8.png" id="p8" class="piece" style="width: 8%; left: 92%; top: 65%;" data-target-x="58.2" data-target-y="66.7">
         <img src="piece9.png" id="p9" class="piece" style="width: 12.11%; left: 90%; top: 85%;" data-target-x="31.5" data-target-y="83.4">
