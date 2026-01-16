@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>水墨碎片修復 - 全裝置自適應</title>
+    <title>水墨碎片修復 - 精確自適應版</title>
     <style>
         body { 
             margin: 0; padding: 0; 
@@ -15,23 +15,26 @@
 
         #game-container { 
             position: relative; 
-            /* 關鍵修改：使用 vmin 確保寬高都不會超出螢幕短邊 */
-            /* 370:190 的比例大約是 1.95:1 */
-            width: 95vw;
-            height: calc(95vw * (190 / 370));
+            /* 1. 鎖定容器比例為 370:190，確保舊座標系統不變 */
+            aspect-ratio: 370 / 190; 
             
-            /* 當手機高度不足時（例如直向），由 max-height 接管並鎖定比例 */
-            max-height: 85vh; 
-            max-width: calc(85vh * (370 / 190));
+            /* 2. 自適應核心：限制寬度與高度都不超出螢幕範圍 */
+            width: 95vw; 
+            max-height: 90vh; 
+            max-width: calc(90vh * (370 / 190)); 
             
             margin: auto;
+
+            /* 3. 背景圖精確計算：底圖為 260，容器為 370，比例約 70.27% */
             background-image: url('bg.jpg'); 
-            background-size: 100% 100%; /* 確保背景圖與容器完全貼合 */
+            background-size: calc(100% * (260 / 370)) 100%; 
             background-repeat: no-repeat; 
             background-position: center; 
-            background-color: #ccc; 
+            
+            background-color: #ccc; /* 容器兩側底色 */
             border: 2px solid #ccc;
             box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
+            overflow: visible; /* 允許碎片在拖動時暫時超出邊界 */
         }
 
         .piece { 
@@ -51,7 +54,9 @@
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background-image: url('complete.jpg');
-            background-size: 100% 100%;
+            background-size: calc(100% * (260 / 370)) 100%;
+            background-repeat: no-repeat;
+            background-position: center;
             background-color: white;
             z-index: 2000;
             display: none;
@@ -81,7 +86,7 @@
 </head>
 <body>
 
-    <div id="debug">對位模式 (自適應)</div>
+    <div id="debug">對位模式 (370:190)</div>
     <div id="message">將碎片拖動至正確位置</div>
 
     <div id="game-container">
@@ -94,10 +99,11 @@
         <img src="piece1.png" id="p1" class="piece" style="width: 11.5%; left: 2%; top: 5%;" data-target-x="45.7" data-target-y="14.6">
         <img src="piece2.png" id="p2" class="piece" style="width: 10.5%; left: 2%; top: 25%;" data-target-x="50.1" data-target-y="33.8">
         <img src="piece3.png" id="p3" class="piece" style="width: 6.5%; left: 2%; top: 45%;" data-target-x="28.1" data-target-y="16.2">
-        <img src="piece4.png" id="p4" class="piece" style="width: 8.3%; left: 2%; top: 65%;" data-target-x="38.85" data-target-y="39.95">
+        <img src="piece4.png" id="p4" class="piece" style="width: 8.4%; left: 2%; top: 65%;" data-target-x="38.85" data-target-y="39.9">
+        
         <img src="piece5.png" id="p5" class="piece" style="width: 14.2%; left: 85%; top: 5%;" data-target-x="25.5" data-target-y="37.0">
         <img src="piece6.png" id="p6" class="piece" style="width: 8.4%; left: 85%; top: 25%;" data-target-x="39.1" data-target-y="62.85">
-        <img src="piece7.png" id="p7" class="piece" style="width: 11.3%; left: 85%; top: 45%;" data-target-x="21.7" data-target-y="55.2">
+        <img src="piece7.png" id="p7" class="piece" style="width: 11.3%; left: 85%; top: 45%;" data-target-x="21.5" data-target-y="55.2">
         <img src="piece8.png" id="p8" class="piece" style="width: 7.7%; left: 85%; top: 65%;" data-target-x="57.7" data-target-y="66.8">
         <img src="piece9.png" id="p9" class="piece" style="width: 11.4%; left: 85%; top: 85%;" data-target-x="32.5" data-target-y="83.4">
     </div>
@@ -107,7 +113,6 @@
         const debug = document.getElementById('debug');
         let activePiece = null;
 
-        // 核心邏輯保持不變，因為使用百分比定位，只要容器比例對，碎片就對
         document.querySelectorAll('.piece').forEach(piece => {
             piece.onpointerdown = function(e) {
                 if(piece.classList.contains('locked')) return;
@@ -118,6 +123,7 @@
             piece.onpointermove = function(e) {
                 if (!activePiece) return;
                 const rect = container.getBoundingClientRect();
+                
                 let x = ((e.clientX - rect.left) / rect.width) * 100;
                 let y = ((e.clientY - rect.top) / rect.height) * 100;
                 
@@ -126,21 +132,26 @@
 
                 activePiece.style.left = (x - pWidth/2) + '%';
                 activePiece.style.top = (y - pHeight/2) + '%';
+
                 debug.innerHTML = `ID: ${activePiece.id}<br>目前中心 X: ${x.toFixed(1)}%<br>目前中心 Y: ${y.toFixed(1)}%`;
             };
 
             piece.onpointerup = function(e) {
                 if (!activePiece) return;
+                
                 const rect = container.getBoundingClientRect();
                 const pWidth = parseFloat(activePiece.style.width);
                 const pHeight = (activePiece.offsetHeight / rect.height) * 100;
+
                 const currentX = parseFloat(activePiece.style.left) + pWidth/2;
                 const currentY = parseFloat(activePiece.style.top) + pHeight/2;
+                
                 const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
                 const targetY = parseFloat(activePiece.getAttribute('data-target-y'));
 
                 if (!isNaN(targetX) && !isNaN(targetY)) {
                     const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
+                    // 磁吸容錯範圍 5%
                     if (distance < 5) { 
                         activePiece.style.left = (targetX - pWidth/2) + '%';
                         activePiece.style.top = (targetY - pHeight/2) + '%';
