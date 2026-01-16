@@ -9,7 +9,7 @@
         
         #game-container { 
             position: relative; 
-            /* ✨ 直式預設：寬度優先 */
+            /* ✨ 直式預設 */
             width: 90vw; 
             max-width: 700px; 
             aspect-ratio: 190 / 260; 
@@ -25,11 +25,12 @@
         /* ✨ 關鍵修改：當裝置為橫式（Landscape）時 */
         @media (orientation: landscape) {
             #game-container {
-                /* 讓高度貼近視窗高度（配合底圖 bg.jpg 的比例） */
-                height: 85vh; 
-                width: auto; /* 寬度根據 aspect-ratio 自動增加 */
-                max-width: 95vw; 
-                max-height: none;
+                /* 讓寬度變大，佔據螢幕大部分寬度 */
+                width: 80vw; 
+                /* 高度則由比例自動計算，因為 190/260 是直的，在橫式螢幕上高度會自動縮減以符合比例 */
+                height: auto; 
+                max-height: 85vh; /* 確保不會超出螢幕上下範圍 */
+                max-width: none;
             }
         }
 
