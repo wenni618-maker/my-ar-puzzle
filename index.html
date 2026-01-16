@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>水墨碎片修復 - 精確自適應版</title>
+    <title>水墨碎片修復-橫式</title>
     <style>
         body { 
             margin: 0; padding: 0; 
@@ -15,26 +15,31 @@
 
         #game-container { 
             position: relative; 
-            /* 1. 鎖定容器比例為 370:190，確保舊座標系統不變 */
+            /* 1. 鎖定容器比例 370:190 (約 1.95:1) */
             aspect-ratio: 370 / 190; 
             
-            /* 2. 自適應核心：限制寬度與高度都不超出螢幕範圍 */
-            width: 95vw; 
-            max-height: 90vh; 
-            max-width: calc(90vh * (370 / 190)); 
+            /* 2. 核心修正：使用 vmin 確保在任何方向都不超出螢幕短邊 */
+            /* 這裡設定容器高度最大為螢幕高度的 80%，寬度則隨比例自動縮放 */
+            height: 80vh; 
+            width: auto;
             
+            /* 3. 防止寬度超出螢幕 */
+            max-width: 95vw;
+            /* 當寬度被限制時，高度要自動縮回以維持比例 */
+            max-height: calc(95vw * (190 / 370));
+
             margin: auto;
 
-            /* 3. 背景圖精確計算：底圖為 260，容器為 370，比例約 70.27% */
+            /* 背景圖邏輯保持不變，確保不用重新對位 */
             background-image: url('bg.jpg'); 
             background-size: calc(100% * (260 / 370)) 100%; 
             background-repeat: no-repeat; 
             background-position: center; 
             
-            background-color: #ccc; /* 容器兩側底色 */
+            background-color: #ccc; 
             border: 2px solid #ccc;
             box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
-            overflow: visible; /* 允許碎片在拖動時暫時超出邊界 */
+            overflow: visible;
         }
 
         .piece { 
@@ -80,8 +85,8 @@
             letter-spacing: 10px;
         }
 
-        #message { position: fixed; bottom: 5%; color: white; background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 30px; z-index: 1000; pointer-events: none; font-size: 14px; }
-        #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 5px; font-size: 10px; z-index: 3000; pointer-events: none; border-radius: 5px; }
+        #message { position: fixed; bottom: 2%; color: white; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 30px; z-index: 1000; pointer-events: none; font-size: 12px; }
+        #debug { position: fixed; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: #0f0; padding: 5px; font-size: 10px; z-index: 3000; pointer-events: none; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -123,35 +128,26 @@
             piece.onpointermove = function(e) {
                 if (!activePiece) return;
                 const rect = container.getBoundingClientRect();
-                
                 let x = ((e.clientX - rect.left) / rect.width) * 100;
                 let y = ((e.clientY - rect.top) / rect.height) * 100;
-                
                 const pWidth = parseFloat(activePiece.style.width);
                 const pHeight = (activePiece.offsetHeight / rect.height) * 100;
-
                 activePiece.style.left = (x - pWidth/2) + '%';
                 activePiece.style.top = (y - pHeight/2) + '%';
-
                 debug.innerHTML = `ID: ${activePiece.id}<br>目前中心 X: ${x.toFixed(1)}%<br>目前中心 Y: ${y.toFixed(1)}%`;
             };
 
             piece.onpointerup = function(e) {
                 if (!activePiece) return;
-                
                 const rect = container.getBoundingClientRect();
                 const pWidth = parseFloat(activePiece.style.width);
                 const pHeight = (activePiece.offsetHeight / rect.height) * 100;
-
                 const currentX = parseFloat(activePiece.style.left) + pWidth/2;
                 const currentY = parseFloat(activePiece.style.top) + pHeight/2;
-                
                 const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
                 const targetY = parseFloat(activePiece.getAttribute('data-target-y'));
-
                 if (!isNaN(targetX) && !isNaN(targetY)) {
                     const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
-                    // 磁吸容錯範圍 5%
                     if (distance < 5) { 
                         activePiece.style.left = (targetX - pWidth/2) + '%';
                         activePiece.style.top = (targetY - pHeight/2) + '%';
@@ -164,14 +160,10 @@
         });
 
         function checkWin() {
-            const lockedCount = document.querySelectorAll('.piece.locked').length;
-            if (lockedCount === 9) {
+            if (document.querySelectorAll('.piece.locked').length === 9) {
                 const ov = document.getElementById('complete-overlay');
                 ov.style.display = 'flex';
-                setTimeout(() => {
-                    ov.style.opacity = '1';
-                    document.getElementById('message').innerText = "修復完成！";
-                }, 50);
+                setTimeout(() => ov.style.opacity = '1', 50);
             }
         }
 
