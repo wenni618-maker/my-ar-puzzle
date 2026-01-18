@@ -3,46 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>水墨碎片修復</title>
+    <title>載入中...</title>
     <style>
-        body {
-            background-color: #1a1a1a;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: sans-serif;
-        }
+        body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; color: white; margin: 0; font-family: sans-serif; }
     </style>
 </head>
 <body>
-
-    <div id="status">偵測環境中...</div>
-
+    <div>正在偵測裝置方向...</div>
     <script>
-        function checkAndRedirect() {
-            // 取得目前的檔案名稱，避免無限迴圈跳轉
-            const currentFile = window.location.pathname.split("/").pop();
-            const isPortrait = window.matchMedia("(orientation: portrait)").matches;
-            
-            let targetFile = isPortrait ? "index(直式適用).html" : "index(橫式適用).html";
-
-            // 只有當目標檔案與現在不同時才跳轉
-            if (currentFile !== encodeURIComponent(targetFile) && currentFile !== targetFile) {
-                window.location.replace(targetFile);
-            }
+        function redirect() {
+            // 判斷寬高比，寬大於高則為橫式
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const target = isLandscape ? "index(橫式適用).html" : "index(直式適用).html";
+            // 加入時間戳記避免平板快取舊頁面內容
+            window.location.replace(target + "?t=" + new Date().getTime());
         }
-
-        // 1. 頁面載入時執行
-        checkAndRedirect();
-
-        // 2. 監聽螢幕寬高變化（平板裝置較靈敏的做法）
-        window.addEventListener('resize', checkAndRedirect);
-
-        // 3. 監聽旋轉事件
-        window.screen.orientation.addEventListener('change', checkAndRedirect);
+        window.onload = redirect;
+        // 監聽旋轉事件
+        window.addEventListener("orientationchange", () => setTimeout(redirect, 300));
     </script>
 </body>
 </html>

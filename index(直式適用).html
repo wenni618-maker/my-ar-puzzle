@@ -3,120 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>水墨碎片修復</title>
+    <title>水墨碎片修復-直式</title>
     <style>
-        body { 
-            margin: 0; padding: 0; 
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; width: 100vw;
-            overflow: hidden; font-family: sans-serif; 
-            background-color: #1a1a1a; 
-        }
-        
-        #game-container { 
-            position: relative; 
-            width: 100%;
-            height: 100%;
-            max-width: calc(100vh * (190 / 260));
-            max-height: calc(100vw * (260 / 190));
-            aspect-ratio: 190 / 260; 
-            background-image: url('bg.jpg'); 
-            background-size: contain; 
-            background-repeat: no-repeat; 
-            background-position: center; 
-            background-color: #ccc; 
-            margin: auto;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8);
-        }
-
-        .piece { 
-            position: absolute; 
-            cursor: grab; 
-            touch-action: none; 
-            z-index: 10;
-            transform: translate(-50%, -50%);
-            filter: drop-shadow(0px 0px 0px rgba(255, 255, 255, 0.9));
-        }
-        
-        .piece:active { 
-            cursor: grabbing; 
-            z-index: 100;
-            transform: translate(-50%, -50%) scale(1.15); 
-            filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 1)); 
-        }
-
-        .piece.locked { 
-            filter: none;
-            z-index: 1;
-            pointer-events: none;
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-            transition: all 0.4s ease; 
-        }
-
-        /* ✨ 修改：完成後的背景圖淡入設定 */
-        #complete-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('complete.jpg');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            background-color: white;
-            z-index: 2000;
-            display: none; /* 由 JS 開啟 */
-            opacity: 0;
-            transition: opacity 2s ease-in-out; /* 背景圖淡入 2秒 */
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* ✨ 修改：文字條出現時間差設定 */
-        #complete-banner {
-            width: 100%;
-            background-color: rgba(255, 255, 255, 0.85); 
-            padding: 20px 0;
-            text-align: center;
-            opacity: 0;
-            transform: translateY(10px); /* 稍微位移增加動感 */
-            transition: opacity 1s ease-out, transform 1s ease-out;
-            transition-delay: 0.6s; /* 關鍵：比背景圖晚 0.6 秒出現 */
-        }
-
-        #complete-text {
-            font-size: 2rem;
-            color: #1a1a1a;
-            font-weight: bold;
-            letter-spacing: 10px;
-        }
-
-        #message { 
-            position: fixed; 
-            bottom: 4%; 
-            color: white; 
-            background: rgba(0,0,0,0.6); 
-            padding: 8px 20px; 
-            border-radius: 30px; 
-            z-index: 1000; 
-            pointer-events: none; 
-            font-size: 13px; 
-            letter-spacing: 1px;
-        }
-        #debug { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-size: 12px; pointer-events: none; z-index: 1000; border-radius: 5px; }
+        body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; font-family: sans-serif; background-color: #1a1a1a; }
+        #game-container { position: relative; width: 100%; height: 100%; max-width: calc(100vh * (190 / 260)); max-height: calc(100vw * (260 / 190)); aspect-ratio: 190 / 260; background-image: url('bg.jpg'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #ccc; margin: auto; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        .piece { position: absolute; cursor: grab; touch-action: none; z-index: 10; transform: translate(-50%, -50%); }
+        .piece:active { cursor: grabbing; z-index: 100; transform: translate(-50%, -50%) scale(1.15); filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 1)); }
+        .piece.locked { filter: none; z-index: 1; pointer-events: none; transform: translate(-50%, -50%) scale(1); transition: all 0.4s ease; }
+        #complete-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('complete.jpg'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: white; z-index: 2000; display: none; opacity: 0; transition: opacity 2s ease-in-out; justify-content: center; align-items: center; }
+        #complete-banner { width: 100%; background-color: rgba(255, 255, 255, 0.85); padding: 20px 0; text-align: center; opacity: 0; transform: translateY(10px); transition: opacity 1s ease-out, transform 1s ease-out; transition-delay: 0.6s; }
+        #complete-text { font-size: 2rem; color: #1a1a1a; font-weight: bold; letter-spacing: 10px; }
+        #message { position: fixed; bottom: 4%; color: white; background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 30px; z-index: 1000; pointer-events: none; font-size: 13px; }
     </style>
 </head>
 <body>
-
-    <div id="debug">對位模式</div>
     <div id="message">將碎片拖動至正確位置</div>
-
     <div id="game-container">
-        <div id="complete-overlay">
-            <div id="complete-banner">
-                <div id="complete-text">修復完成</div>
-            </div>
-        </div>
-
+        <div id="complete-overlay"><div id="complete-banner"><div id="complete-text">修復完成</div></div></div>
         <img src="piece1.png" id="p1" class="piece" style="width: 16.5%; left: 10%; top: 15%;" data-target-x="43.8" data-target-y="31.3">
         <img src="piece2.png" id="p2" class="piece" style="width: 15.1%; left: 30%; top: 15%;" data-target-x="50.1" data-target-y="41.4">
         <img src="piece3.png" id="p3" class="piece" style="width: 9.3%; left: 50%; top: 15%;" data-target-x="18.6" data-target-y="31.9">
@@ -129,8 +32,15 @@
     </div>
 
     <script>
+        // --- 旋轉偵測：若寬大於高(橫向)，跳回 index.html ---
+        function checkOrientation() {
+            if (window.innerWidth > window.innerHeight) {
+                window.location.replace("index.html");
+            }
+        }
+        window.addEventListener("resize", checkOrientation);
+
         const container = document.getElementById('game-container');
-        const debug = document.getElementById('debug');
         let activePiece = null;
 
         document.querySelectorAll('.piece').forEach(piece => {
@@ -139,26 +49,19 @@
                 activePiece = piece;
                 piece.setPointerCapture(e.pointerId);
             };
-
             piece.onpointermove = function(e) {
                 if (!activePiece) return;
                 const rect = container.getBoundingClientRect();
-                let x = ((e.clientX - rect.left) / rect.width) * 100;
-                let y = ((e.clientY - rect.top) / rect.height) * 100;
-                activePiece.style.left = x + '%';
-                activePiece.style.top = y + '%';
-                debug.innerHTML = `正在調整: ${activePiece.id}<br>中心 X: ${x.toFixed(1)}%<br>中心 Y: ${y.toFixed(1)}%`;
+                activePiece.style.left = (((e.clientX - rect.left) / rect.width) * 100) + '%';
+                activePiece.style.top = (((e.clientY - rect.top) / rect.height) * 100) + '%';
             };
-
             piece.onpointerup = function(e) {
                 if (!activePiece) return;
                 const currentX = parseFloat(activePiece.style.left);
                 const currentY = parseFloat(activePiece.style.top);
                 const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
                 const targetY = parseFloat(activePiece.getAttribute('data-target-y'));
-                const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
-
-                if (distance < 5) { 
+                if (Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2)) < 5) { 
                     activePiece.style.left = targetX + '%';
                     activePiece.style.top = targetY + '%';
                     activePiece.classList.add('locked');
@@ -172,15 +75,8 @@
             if (document.querySelectorAll('.piece.locked').length === 9) {
                 const overlay = document.getElementById('complete-overlay');
                 const banner = document.getElementById('complete-banner');
-                
                 overlay.style.display = 'flex';
-                
-                // ✨ 觸發淡入動畫
-                setTimeout(() => {
-                    overlay.style.opacity = '1';
-                    banner.style.opacity = '1';
-                    banner.style.transform = 'translateY(0)';
-                }, 100);
+                setTimeout(() => { overlay.style.opacity = '1'; banner.style.opacity = '1'; banner.style.transform = 'translateY(0)'; }, 100);
             }
         }
     </script>
