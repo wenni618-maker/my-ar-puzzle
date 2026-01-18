@@ -2,178 +2,51 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>水墨碎片修復 - 最終全自適應版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水墨碎片修復</title>
     <style>
-        body { 
-            margin: 0; padding: 0; 
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; width: 100vw; overflow: hidden; 
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
             font-family: "Microsoft JhengHei", sans-serif;
-            background-color: #1a1a1a; 
         }
-
-        #game-container { 
-            position: relative; 
-            /* 1. 鎖定容器比例 370:190 */
-            aspect-ratio: 370 / 190; 
-            
-            /* 2. 核心修正：使用 vmin 作為最大限制 */
-            /* 在橫向螢幕時，高度會優先被 85vh 限制住，寬度自動縮小，絕不超出範圍 */
-            width: 95vw;
-            height: auto;
-            max-height: 70vh; 
-            max-width: calc(70vh * (370 / 190)); 
-            
-            margin: auto;
-
-            /* 3. 背景圖精確計算：底圖 260，容器 370 */
-            background-image: url('bg.jpg'); 
-            background-size: calc(100% * (260 / 370)) 100%; 
-            background-repeat: no-repeat; 
-            background-position: center; 
-            
-            background-color: #ccc; 
-            border: 2px solid #ccc;
-            box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
-            overflow: visible;
+        .loader {
+            text-align: center;
+            letter-spacing: 2px;
         }
-
-        .piece { 
-            position: absolute; 
-            cursor: grab; 
-            touch-action: none; 
-            z-index: 10;
-            transition: transform 0.2s ease-out; /* 抓取平滑動畫 */
-            transform-origin: center; 
-        }
-
-        /* 抓取時放大效果 */
-        .piece.dragging {
-            transform: scale(1.15); /* 放大 1.15 倍 */
-            z-index: 100;
-        }
-
-        /* 鎖定或放開時回到原始大小 */
-        .piece.locked { 
-            z-index: 1; 
-            pointer-events: none; 
-            transform: scale(1);
-            transition: all 0.4s ease-out;
-        }
-
-        #complete-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('complete.jpg');
-            background-size: calc(100% * (260 / 370)) 100%;
-            background-repeat: no-repeat;
-            background-position: center;
-            background-color: white;
-            z-index: 2000;
-            display: none;
-            opacity: 0;
-            transition: opacity 1.5s ease;
-        }
-
-        /* 訊息與偵錯文字：針對手機縮小尺寸 */
-        #message { position: fixed; bottom: 3%; color: white; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 30px; z-index: 1000; pointer-events: none; font-size: 12px; }
-        #debug { position: fixed; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: #0f0; padding: 5px; font-size: 10px; z-index: 3000; pointer-events: none; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="debug">對位模式 (高度優先)</div>
-    <div id="message">將碎片拖動至正確位置</div>
-
-    <div id="game-container">
-        <div id="complete-overlay"></div>
-
-        <img src="piece1.png" id="p1" class="piece" style="width: 11.5%; left: 2%; top: 5%;" data-target-x="45.66" data-target-y="14.6">
-        <img src="piece2.png" id="p2" class="piece" style="width: 10.5%; left: 2%; top: 25%;" data-target-x="50.1" data-target-y="33.8">
-        <img src="piece3.png" id="p3" class="piece" style="width: 6.5%; left: 2%; top: 45%;" data-target-x="28.1" data-target-y="16.2">
-        <img src="piece4.png" id="p4" class="piece" style="width: 8.4%; left: 2%; top: 65%;" data-target-x="38.85" data-target-y="39.9">
-        
-        <img src="piece5.png" id="p5" class="piece" style="width: 14.3%; left: 85%; top: 5%;" data-target-x="25.5" data-target-y="36.98">
-        <img src="piece6.png" id="p6" class="piece" style="width: 8.4%; left: 85%; top: 25%;" data-target-x="39.1" data-target-y="62.85">
-        <img src="piece7.png" id="p7" class="piece" style="width: 11.4%; left: 85%; top: 45%;" data-target-x="21.6" data-target-y="55.2">
-        <img src="piece8.png" id="p8" class="piece" style="width: 7.7%; left: 85%; top: 65%;" data-target-x="57.7" data-target-y="66.8">
-        <img src="piece9.png" id="p9" class="piece" style="width: 11.5%; left: 85%; top: 85%;" data-target-x="32.5" data-target-y="83.4">
-    </div>
+    <div class="loader">正在偵測裝置方向...</div>
 
     <script>
-        const container = document.getElementById('game-container');
-        const debug = document.getElementById('debug');
-        let activePiece = null;
-
-        document.querySelectorAll('.piece').forEach(piece => {
-            piece.onpointerdown = function(e) {
-                if(piece.classList.contains('locked')) return;
-                activePiece = piece;
-                activePiece.classList.add('dragging'); // 增加抓取效果
-                piece.setPointerCapture(e.pointerId);
-            };
-
-            piece.onpointermove = function(e) {
-                if (!activePiece) return;
-                const rect = container.getBoundingClientRect();
-                
-                let x = ((e.clientX - rect.left) / rect.width) * 100;
-                let y = ((e.clientY - rect.top) / rect.height) * 100;
-                
-                const pWidth = parseFloat(activePiece.style.width);
-                const pHeight = (activePiece.offsetHeight / rect.height) * 100;
-
-                activePiece.style.left = (x - pWidth/2) + '%';
-                activePiece.style.top = (y - pHeight/2) + '%';
-
-                debug.innerHTML = `ID: ${activePiece.id}<br>目前中心 X: ${x.toFixed(1)}%<br>目前中心 Y: ${y.toFixed(1)}%`;
-            };
-
-            piece.onpointerup = function(e) {
-                if (!activePiece) return;
-                
-                const rect = container.getBoundingClientRect();
-                const pWidth = parseFloat(activePiece.style.width);
-                const pHeight = (activePiece.offsetHeight / rect.height) * 100;
-
-                const currentX = parseFloat(activePiece.style.left) + pWidth/2;
-                const currentY = parseFloat(activePiece.style.top) + pHeight/2;
-                
-                const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
-                const targetY = parseFloat(activePiece.getAttribute('data-target-y'));
-
-                activePiece.classList.remove('dragging'); // 移除抓取效果
-
-                if (!isNaN(targetX) && !isNaN(targetY)) {
-                    const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
-                    // 磁吸範圍 5%
-                    if (distance < 5) { 
-                        activePiece.style.left = (targetX - pWidth/2) + '%';
-                        activePiece.style.top = (targetY - pHeight/2) + '%';
-                        activePiece.classList.add('locked');
-                        checkWin();
-                    }
-                }
-                activePiece = null;
-            };
-        });
-
-        function checkWin() {
-            const lockedCount = document.querySelectorAll('.piece.locked').length;
-            if (lockedCount === 9) {
-                const ov = document.getElementById('complete-overlay');
-                ov.style.display = 'block';
-                setTimeout(() => {
-                    ov.style.opacity = '1';
-                    document.getElementById('message').innerText = "修復完成！";
-                }, 50);
+        function redirect() {
+            // 偵測螢幕寬高比
+            const isPortrait = window.innerHeight > window.innerWidth;
+            
+            if (isPortrait) {
+                // 如果是直式，跳轉至直式檔案
+                window.location.replace("index(直式適用).html");
+            } else {
+                // 如果是橫式，跳轉至橫式檔案
+                window.location.replace("index(橫式適用).html");
             }
         }
 
-        document.addEventListener('touchmove', (e) => {
-            if (e.target.classList.contains('piece')) e.preventDefault();
-        }, { passive: false });
+        // 頁面載入後立即執行
+        window.onload = redirect;
+
+        // 監聽螢幕旋轉事件：當玩家翻轉手機時，自動切換對應版本
+        window.addEventListener("orientationchange", function() {
+            // 延遲一點點時間等待視窗尺寸更新完成再跳轉
+            setTimeout(redirect, 300);
+        });
     </script>
 </body>
 </html>
