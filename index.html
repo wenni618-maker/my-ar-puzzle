@@ -13,40 +13,36 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            font-family: "Microsoft JhengHei", sans-serif;
-        }
-        .loader {
-            text-align: center;
-            letter-spacing: 2px;
+            font-family: sans-serif;
         }
     </style>
 </head>
 <body>
 
-    <div class="loader">正在偵測裝置方向...</div>
+    <div id="status">偵測環境中...</div>
 
     <script>
-        function redirect() {
-            // 偵測螢幕寬高比
-            const isPortrait = window.innerHeight > window.innerWidth;
+        function checkAndRedirect() {
+            // 取得目前的檔案名稱，避免無限迴圈跳轉
+            const currentFile = window.location.pathname.split("/").pop();
+            const isPortrait = window.matchMedia("(orientation: portrait)").matches;
             
-            if (isPortrait) {
-                // 如果是直式，跳轉至直式檔案
-                window.location.replace("index(直式適用).html");
-            } else {
-                // 如果是橫式，跳轉至橫式檔案
-                window.location.replace("index(橫式適用).html");
+            let targetFile = isPortrait ? "index(直式適用).html" : "index(橫式適用).html";
+
+            // 只有當目標檔案與現在不同時才跳轉
+            if (currentFile !== encodeURIComponent(targetFile) && currentFile !== targetFile) {
+                window.location.replace(targetFile);
             }
         }
 
-        // 頁面載入後立即執行
-        window.onload = redirect;
+        // 1. 頁面載入時執行
+        checkAndRedirect();
 
-        // 監聽螢幕旋轉事件：當玩家翻轉手機時，自動切換對應版本
-        window.addEventListener("orientationchange", function() {
-            // 延遲一點點時間等待視窗尺寸更新完成再跳轉
-            setTimeout(redirect, 300);
-        });
+        // 2. 監聽螢幕寬高變化（平板裝置較靈敏的做法）
+        window.addEventListener('resize', checkAndRedirect);
+
+        // 3. 監聽旋轉事件
+        window.screen.orientation.addEventListener('change', checkAndRedirect);
     </script>
 </body>
 </html>
