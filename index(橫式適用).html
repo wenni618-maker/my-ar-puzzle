@@ -2,37 +2,44 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>水墨碎片修復-橫式</title>
     <style>
+        * { box-sizing: border-box; } /* 確保邊框不撐開寬度 */
+
         body { 
             margin: 0; 
             padding: 0; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            height: 100vh; 
+            /* 使用 svh (Small Viewport Height) 避開手機網址列 */
+            height: 100svh; 
             width: 100vw; 
             overflow: hidden; 
+            position: fixed; /* 防止橡皮筋滾動效應 */
             font-family: "Microsoft JhengHei", sans-serif; 
             background-color: #1a1a1a; 
         }
 
         #game-container { 
             position: relative; 
-            /* 核心優化：確保寬度不超過螢幕 95%，且高度換算後不超過螢幕 85% */
-            /* 370 / 190 是您的原始畫布比例，這能保證座標不偏移 */
-            width: min(95vw, calc(85vh * (370 / 190))); 
+            /* 核心修正：
+               1. 寬度最高 92vw
+               2. 高度最高 80svh (保留空間給文字與安全區)
+               3. 透過 calc 自動計算兩者最小值，確保比例 370:190 絕對不變
+            */
+            width: min(92vw, calc(80svh * (370 / 190))); 
             aspect-ratio: 370 / 190; 
-            margin: auto; 
+            
             background-image: url('bg.jpg'); 
-            /* 保持原始背景圖顯示比例 260/370 */
             background-size: calc(100% * (260 / 370)) 100%; 
             background-repeat: no-repeat; 
             background-position: center; 
             background-color: #ccc; 
             border: 2px solid #ccc; 
             box-shadow: 0px 10px 30px rgba(0,0,0,0.5); 
+            /* 確保碎片超出容器邊緣時（例如在左右兩側）依然看得到 */
             overflow: visible; 
         }
 
@@ -48,7 +55,6 @@
         .piece:active { 
             cursor: grabbing; 
             z-index: 100; 
-            /* 手指按住時放大並增加發光，提升操作手感 */
             transform: translate(-50%, -50%) scale(1.15); 
             filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 1)); 
         }
@@ -58,10 +64,7 @@
 
         #complete-overlay { 
             position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
+            top: 0; left: 0; width: 100%; height: 100%; 
             background-image: url('complete.jpg'); 
             background-size: calc(100% * (260 / 370)) 100%; 
             background-repeat: no-repeat; 
@@ -81,9 +84,8 @@
         #complete-banner { 
             width: calc(100% * (260 / 370)); 
             background-color: rgba(255, 255, 255, 0.75); 
-            padding: 2.5% 0; 
+            padding: 2% 0; 
             text-align: center; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.1); 
             opacity: 0; 
             transform: translateY(10px); 
             transition: opacity 1.5s ease-in-out 0.5s, transform 1.5s ease-out 0.5s; 
@@ -94,24 +96,21 @@
         #complete-text { 
             color: #1a1a1a; 
             font-weight: bold; 
-            letter-spacing: 1.2em; 
-            text-indent: 1.2em; 
-            font-size: clamp(14px, 5vh, 24px); 
+            letter-spacing: 1em; 
+            text-indent: 1em; 
+            font-size: clamp(12px, 4vh, 20px); 
         }
 
         #message { 
-            position: fixed; 
-            bottom: 3%; 
+            position: absolute; 
+            bottom: 2svh; 
             color: white; 
             background: rgba(0,0,0,0.6); 
-            padding: 5px 15px; 
-            border-radius: 30px; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
             z-index: 1000; 
-            pointer-events: none; 
             font-size: 12px; 
-            transition: opacity 0.5s ease; 
         }
-        #message.hidden { opacity: 0; }
     </style>
 </head>
 <body>
@@ -131,14 +130,13 @@
     </div>
 
     <script>
-        // 旋轉偵測：確保手機橫式使用
         function checkOrientation() {
             if (window.innerHeight > window.innerWidth) {
                 window.location.replace("index.html");
             }
         }
         window.addEventListener("resize", checkOrientation);
-        window.addEventListener("load", checkOrientation); // 初始化檢查
+        window.addEventListener("load", checkOrientation);
 
         const container = document.getElementById('game-container');
         let activePiece = null;
@@ -154,15 +152,10 @@
             piece.onpointermove = function(e) {
                 if (!activePiece) return;
                 const rect = container.getBoundingClientRect();
-                
-                // 基於容器寬高計算百分比座標
                 let x = ((e.clientX - rect.left) / rect.width) * 100;
                 let y = ((e.clientY - rect.top) / rect.height) * 100;
-                
                 const pWidth = parseFloat(activePiece.style.width);
-                // 使用 offsetHeight 確保在不同縮放下的高度百分比準確
                 const pHeight = (activePiece.offsetHeight / rect.height) * 100;
-
                 activePiece.style.left = (x - pWidth/2) + '%';
                 activePiece.style.top = (y - pHeight/2) + '%';
             };
@@ -172,7 +165,6 @@
                 const rect = container.getBoundingClientRect();
                 const pWidth = parseFloat(activePiece.style.width);
                 const pHeight = (activePiece.offsetHeight / rect.height) * 100;
-
                 const currentX = parseFloat(activePiece.style.left) + pWidth/2;
                 const currentY = parseFloat(activePiece.style.top) + pHeight/2;
                 const targetX = parseFloat(activePiece.getAttribute('data-target-x'));
@@ -182,7 +174,6 @@
 
                 if (!isNaN(targetX) && !isNaN(targetY)) {
                     const distance = Math.sqrt(Math.pow(currentX - targetX, 2) + Math.pow(currentY - targetY, 2));
-                    // 判定距離 5%
                     if (distance < 5) { 
                         activePiece.style.left = (targetX - pWidth/2) + '%';
                         activePiece.style.top = (targetY - pHeight/2) + '%';
@@ -197,9 +188,8 @@
         function checkWin() {
             if (document.querySelectorAll('.piece.locked').length === 9) {
                 const ov = document.getElementById('complete-overlay');
-                document.getElementById('message').classList.add('hidden');
+                document.getElementById('message').style.display = 'none';
                 ov.style.display = 'flex';
-                // 確保 display 改變後延遲觸發 opacity 過渡
                 setTimeout(() => ov.classList.add('show'), 50);
             }
         }
