@@ -3,26 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>水墨導覽 - AR 掃描器</title>
+    <title>AR 掃描器 - 自動轉向版</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-        /* 確保全螢幕且底層黑色，防止閃爍 */
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
 
-        /* 遊戲層：預設隱藏 */
+        /* 遊戲層：初始隱藏 */
         #game-frame-container {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100svh;
-            z-index: 9999; /* 確保在最上層 */
-            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            background: #000;
         }
 
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* 載入中動畫 */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #1a1a1a; color: white;
@@ -37,13 +35,11 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* 掃描提示框 */
         #scan-guide {
             position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
             color: white; background: rgba(0,0,0,0.6);
             padding: 10px 20px; border-radius: 25px;
             font-size: 14px; z-index: 1000; pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.3);
         }
     </style>
 </head>
@@ -51,13 +47,13 @@
 
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div id="status-text">正在啟動相機...</div>
+        <div>AR 引擎啟動中...</div>
     </div>
 
     <div id="scan-guide">請對準水墨畫作進行掃描</div>
 
     <div id="game-frame-container">
-        <iframe src="index(橫式適用).html" id="puzzle-iframe"></iframe>
+        <iframe src="" id="puzzle-iframe"></iframe>
     </div>
 
     <a-scene 
@@ -71,40 +67,56 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0" id="puzzle-target">
-            <a-plane color="#00fff2" opacity="0.3" position="0 0 0" height="1" width="1"></a-plane>
+            <a-plane color="#00fff2" opacity="0.3" position="0 0 0"></a-plane>
         </a-entity>
     </a-scene>
 
     <script>
         const sceneEl = document.querySelector('a-scene');
         const loadingOverlay = document.getElementById('loading-overlay');
-        const statusText = document.getElementById('status-text');
         const gameContainer = document.getElementById('game-frame-container');
+        const iframe = document.getElementById('puzzle-iframe');
         const puzzleTarget = document.getElementById('puzzle-target');
 
-        // 1. 監聽啟動狀態
+        // 偵測裝置方向並返回對應檔名
+        function getTargetGameFile() {
+            const isLandscape = window.innerWidth > window.innerHeight;
+            return isLandscape ? "index(橫式適用).html" : "index(直式適用).html";
+        }
+
         sceneEl.addEventListener("arReady", () => {
-            console.log("MindAR Ready");
             loadingOverlay.style.display = "none";
         });
 
-        sceneEl.addEventListener("arError", (event) => {
-            console.error("AR Error", event);
-            statusText.innerText = "相機啟動失敗，請確保使用 HTTPS 並開啟權限";
-        });
-
-        // 2. 偵測成功邏輯
+        // 核心邏輯：偵測到圖片時判定方向並加載
         puzzleTarget.addEventListener("targetFound", event => {
-            console.log("發現目標圖片！");
+            console.log("Found Target");
+            const targetFile = getTargetGameFile();
+            
+            // 只有在還沒載入過或檔案不同時才更新 src
+            if (!iframe.src.includes(targetFile)) {
+                iframe.src = targetFile;
+            }
+            
             gameContainer.style.display = 'block';
-            // 震動回饋 (部分 Android 支援)
             if (navigator.vibrate) navigator.vibrate(150);
         });
 
-        // 3. 處理關閉訊息 (來自 iframe)
+        // 監聽轉向事件：如果在遊戲中轉動手機，自動切換檔案
+        window.addEventListener("resize", () => {
+            if (gameContainer.style.display === 'block') {
+                const targetFile = getTargetGameFile();
+                if (!iframe.src.includes(targetFile)) {
+                    iframe.src = targetFile;
+                }
+            }
+        });
+
+        // 接收來自拼圖遊戲 (iframe) 的關閉訊息
         window.addEventListener('message', (event) => {
             if (event.data === 'closeGame') {
                 gameContainer.style.display = 'none';
+                iframe.src = ""; // 清空 src 以便下次重新偵測
             }
         });
     </script>
