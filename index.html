@@ -2,47 +2,71 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR 掃描器 - 無縫旋轉穩定版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AR 掃描器</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        /* 1. 強制讓所有層級撐滿螢幕 */
+        html, body { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #000; 
+            position: fixed; /* 防止手機瀏覽器彈跳 */
+        }
 
-        /* 核心機制：預先載入兩者，透過 CSS 切換顯示 */
+        /* 2. 讓 A-Frame 的 Canvas 真的滿版 */
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover; /* 關鍵：讓相機畫面像背景一樣填滿，不留黑邊 */
+        }
+
+        /* 掃描提示 UI */
+        #scan-hint-container {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000; text-align: center;
+            pointer-events: none;
+        }
+        .scan-box {
+            width: 70vw; height: 35vh;
+            border: 2px dashed rgba(255, 255, 255, 0.6);
+            border-radius: 20px; margin-bottom: 20px;
+        }
+        .scan-text {
+            background: rgba(0, 0, 0, 0.6); color: white;
+            padding: 12px 30px; border-radius: 30px; font-size: 18px;
+        }
+
+        /* 遊戲顯示層 */
         #game-wrapper {
-            display: none; /* 初始隱藏，掃描到才開 */
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100svh;
+            display: none; position: fixed; 
+            top: 0; left: 0; width: 100vw; height: 100svh;
             z-index: 9999; background: #000;
         }
-
         .game-iframe { 
             position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%; border: none; 
-            display: none; /* 預設都隱藏 */
+            width: 100%; height: 100%; border: none; display: none;
         }
-
-        /* 偵測橫式：顯示橫式 iframe */
-        @media (orientation: landscape) {
-            #iframe-landscape { display: block; }
-        }
-        /* 偵測直式：顯示直式 iframe */
-        @media (orientation: portrait) {
-            #iframe-portrait { display: block; }
-        }
+        @media (orientation: landscape) { #iframe-landscape { display: block; } }
+        @media (orientation: portrait) { #iframe-portrait { display: block; } }
 
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #1a1a1a; color: white;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 2000;
+            background: #000; color: white;
+            display: flex; justify-content: center; align-items: center; z-index: 10000;
         }
     </style>
 </head>
 <body>
 
-    <div id="loading-overlay"><div>AR 啟動中...</div></div>
+    <div id="loading-overlay">相機啟動中...</div>
+
+    <div id="scan-hint-container">
+        <div class="scan-box"></div>
+        <div class="scan-text">請掃描圖片</div>
+    </div>
 
     <div id="game-wrapper">
         <iframe src="index(橫式適用).html" id="iframe-landscape" class="game-iframe"></iframe>
@@ -50,13 +74,15 @@
     </div>
 
     <a-scene 
-        mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: no; maxTrack: 1" 
-        embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+        mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: no; maxTrack: 1; filterMinCF:0.001; filterBeta: 0.01" 
+        embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
+        renderer="colorManagement: true, physicallyCorrectLights"
+        inspector="url: xxx">
         
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0" id="puzzle-target">
-            <a-plane color="#00fff2" opacity="0.3"></a-plane>
+            <a-plane color="#00ff00" opacity="0.2" position="0 0 0"></a-plane>
         </a-entity>
     </a-scene>
 
@@ -64,24 +90,33 @@
         const sceneEl = document.querySelector('a-scene');
         const loadingOverlay = document.getElementById('loading-overlay');
         const gameWrapper = document.getElementById('game-wrapper');
+        const scanHint = document.getElementById('scan-hint-container');
         const puzzleTarget = document.getElementById('puzzle-target');
 
+        // 當相機準備好時，強制調整視訊層比例
         sceneEl.addEventListener("arReady", () => {
             loadingOverlay.style.display = "none";
+            console.log("AR Ready");
         });
 
-        // 偵測到圖片：直接把 Wrapper 顯示出來
         puzzleTarget.addEventListener("targetFound", () => {
+            scanHint.style.display = 'none';
             gameWrapper.style.display = 'block';
             if (navigator.vibrate) navigator.vibrate(150);
         });
 
-        // 接收遊戲端傳來的關閉指令
         window.addEventListener('message', (event) => {
             if (event.data === 'closeGame') {
                 gameWrapper.style.display = 'none';
-                // 為了效能，關閉後可以選擇重新整理或重設 src，但若要保持下次進入速度則維持現狀
+                scanHint.style.display = 'block';
             }
+        });
+
+        // 監聽轉向，確保 UI 重新計算（針對部分 Android 瀏覽器）
+        window.addEventListener("orientationchange", () => {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 500);
         });
     </script>
 </body>
