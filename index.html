@@ -2,25 +2,68 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>載入中...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AR 掃描控制器</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    
     <style>
-        body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; color: white; margin: 0; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; }
+        
+        /* 遊戲嵌入層：初始完全隱藏 */
+        #game-frame-container {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100svh;
+            z-index: 9999;
+            background: rgba(0,0,0,0.8);
+        }
+
+        iframe { width: 100%; height: 100%; border: none; }
+
+        #scan-hint {
+            position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
+            color: white; background: rgba(0,0,0,0.6);
+            padding: 10px 20px; border-radius: 20px; z-index: 1000;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
-    <div>正在偵測裝置方向...</div>
+
+    <div id="scan-hint">請掃描現場圖像畫</div>
+
+    <div id="game-frame-container">
+        <iframe src="index(橫式適用).html" id="puzzle-iframe"></iframe>
+    </div>
+
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        <a-marker type="pattern" url="puzzle-marker.patt" id="marker-puzzle">
+            <a-sphere color="gold" radius="0.3"></a-sphere>
+        </a-marker>
+
+        <a-marker type="pattern" url="other-marker.patt" id="marker-other">
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
     <script>
-        function redirect() {
-            // 判斷寬高比，寬大於高則為橫式
-            const isLandscape = window.innerWidth > window.innerHeight;
-            const target = isLandscape ? "index(橫式適用).html" : "index(直式適用).html";
-            // 加入時間戳記避免平板快取舊頁面內容
-            window.location.replace(target + "?t=" + new Date().getTime());
-        }
-        window.onload = redirect;
-        // 監聽旋轉事件
-        window.addEventListener("orientationchange", () => setTimeout(redirect, 300));
+        const puzzleMarker = document.querySelector('#marker-puzzle');
+        const gameContainer = document.querySelector('#game-frame-container');
+
+        // 當掃描到拼圖對應的標記時
+        puzzleMarker.addEventListener('markerFound', () => {
+            gameContainer.style.display = 'block';
+            if (navigator.vibrate) navigator.vibrate(100);
+        });
+
+        // 監聽來自 iframe (拼圖檔案) 的訊息，例如點擊「關閉」按鈕
+        window.addEventListener('message', (event) => {
+            if (event.data === 'closeGame') {
+                gameContainer.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
