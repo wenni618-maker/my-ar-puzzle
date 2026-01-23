@@ -3,33 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR 掃描器 - 無縫旋轉版</title>
+    <title>AR 掃描器 - 無縫旋轉穩定版</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
 
-        /* 遊戲容器總層 */
+        /* 核心機制：預先載入兩者，透過 CSS 切換顯示 */
         #game-wrapper {
-            display: none; 
+            display: none; /* 初始隱藏，掃描到才開 */
             position: fixed; top: 0; left: 0; width: 100vw; height: 100svh;
             z-index: 9999; background: #000;
         }
 
-        /* 兩個方向的 iframe 初始都隱藏 */
         .game-iframe { 
-            display: none; width: 100%; height: 100%; border: none; 
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; border: none; 
+            display: none; /* 預設都隱藏 */
         }
 
-        /* 依據螢幕方向顯示對應的內容 */
+        /* 偵測橫式：顯示橫式 iframe */
         @media (orientation: landscape) {
-            .landscape-only { display: block; }
-            .portrait-only { display: none; }
+            #iframe-landscape { display: block; }
         }
+        /* 偵測直式：顯示直式 iframe */
         @media (orientation: portrait) {
-            .landscape-only { display: none; }
-            .portrait-only { display: block; }
+            #iframe-portrait { display: block; }
         }
 
         #loading-overlay {
@@ -38,24 +38,15 @@
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 2000;
         }
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db; border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 15px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <div>AR 引擎啟動中...</div>
-    </div>
+    <div id="loading-overlay"><div>AR 啟動中...</div></div>
 
     <div id="game-wrapper">
-        <iframe src="index(橫式適用).html" class="game-iframe landscape-only"></iframe>
-        <iframe src="index(直式適用).html" class="game-iframe portrait-only"></iframe>
+        <iframe src="index(橫式適用).html" id="iframe-landscape" class="game-iframe"></iframe>
+        <iframe src="index(直式適用).html" id="iframe-portrait" class="game-iframe"></iframe>
     </div>
 
     <a-scene 
@@ -79,16 +70,17 @@
             loadingOverlay.style.display = "none";
         });
 
-        // 偵測到圖片時，直接顯示外層容器
-        puzzleTarget.addEventListener("targetFound", event => {
+        // 偵測到圖片：直接把 Wrapper 顯示出來
+        puzzleTarget.addEventListener("targetFound", () => {
             gameWrapper.style.display = 'block';
             if (navigator.vibrate) navigator.vibrate(150);
         });
 
-        // 接收關閉訊息
+        // 接收遊戲端傳來的關閉指令
         window.addEventListener('message', (event) => {
             if (event.data === 'closeGame') {
                 gameWrapper.style.display = 'none';
+                // 為了效能，關閉後可以選擇重新整理或重設 src，但若要保持下次進入速度則維持現狀
             }
         });
     </script>
