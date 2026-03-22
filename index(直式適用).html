@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>水墨碎片修復</title>
+    <title>水墨碎片修復-直式</title>
     <style>
         body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; font-family: sans-serif; background-color: #1a1a1a; }
         #game-container { position: relative; width: 100%; height: 100%; max-width: calc(100vh * (190 / 260)); max-height: calc(100vw * (260 / 190)); aspect-ratio: 190 / 260; background-image: url('bg.jpg'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #ccc; margin: auto; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
@@ -14,12 +14,10 @@
         #complete-banner { width: 100%; background-color: rgba(255, 255, 255, 0.85); padding: 20px 0; text-align: center; opacity: 0; transform: translateY(10px); transition: opacity 1s ease-out, transform 1s ease-out; transition-delay: 0.6s; }
         #complete-text { font-size: 2rem; color: #1a1a1a; font-weight: bold; letter-spacing: 10px; }
         #message { position: fixed; bottom: 4%; color: white; background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 30px; z-index: 1000; pointer-events: none; font-size: 13px; }
-
-	    </style>
+    </style>
 </head>
 <body>
-<button id="btn-close" style="position:fixed; top:10px; right:10px; z-index:9999; width:40px; height:40px; border-radius:50%; background:white; border:none; font-size:20px; font-weight:bold;">✕</button>
-
+    <button id="btn-close" style="position:fixed; top:10px; right:10px; z-index:9999; width:40px; height:40px; border-radius:50%; background:white; border:none; font-size:20px; font-weight:bold;">✕</button>
     <div id="message">將碎片拖動至正確位置</div>
     <div id="game-container">
         <div id="complete-overlay"><div id="complete-banner"><div id="complete-text">修復完成</div></div></div>
@@ -35,13 +33,14 @@
     </div>
 
     <script>
-        // --- 旋轉偵測：若寬大於高(橫向)，跳回 index.html ---
+        // 修正後的偵測邏輯：如果發現變成橫式，立即回跳中轉站
         function checkOrientation() {
             if (window.innerWidth > window.innerHeight) {
-                window.location.replace("index.html");
+                window.location.replace("index(直向與橫向轉換).html");
             }
         }
         window.addEventListener("resize", checkOrientation);
+        window.addEventListener("load", checkOrientation);
 
         const container = document.getElementById('game-container');
         let activePiece = null;
@@ -82,13 +81,7 @@
                 setTimeout(() => { overlay.style.opacity = '1'; banner.style.opacity = '1'; banner.style.transform = 'translateY(0)'; }, 100);
             }
         }
-
- document.getElementById('btn-close').onclick = function() {
-    // 告訴父視窗 (AR 主控台) 關閉這個遊戲層
-    window.parent.postMessage('closeGame', '*');
-};
-
+        document.getElementById('btn-close').onclick = () => window.parent.postMessage('closeGame', '*');
     </script>
-
 </body>
 </html>
